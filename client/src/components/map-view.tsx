@@ -269,12 +269,9 @@ function MerchantMarkers() {
           details = `
             <div class="text-center">
               <img 
-                src="${theme === 'dark'
-                  ? 'https://cdn.prod.website-files.com/6720ed07d56bdfa402a08023/6720ed07d56bdfa402a081b8_icon-dark-bg-p-500.png'
-                  : 'https://cdn.prod.website-files.com/6720ed07d56bdfa402a08023/6720ed07d56bdfa402a081b7_blink-icon-p-500.png'
-                }" 
+                src="https://cdn.prod.website-files.com/6720ed07d56bdfa402a08023/6720ed07d56bdfa402a081b7_blink-icon-p-500.png"
                 alt="Blink Logo" 
-                class="w-12 h-12 mx-auto mb-2"
+                class="w-12 h-12 mx-auto mb-2 object-contain"
               />
               <strong>${merchant.mapInfo.title}</strong><br/>
               <span>@${merchant.username}</span><br/>
@@ -311,7 +308,7 @@ function MerchantMarkers() {
               <img 
                 src="https://btcmap.org/images/logo.svg" 
                 alt="BTCMap Logo" 
-                class="w-12 h-12 mx-auto mb-2"
+                class="w-12 h-12 mx-auto mb-2 object-contain"
               />
               <strong>${name}</strong><br/>
               <em>${type}</em><br/>
@@ -334,7 +331,7 @@ function MerchantMarkers() {
 
       const marker = L.marker([lat, lng], { icon });
       marker.on('click', () => {
-        marker.bindPopup(`<strong>${name}</strong><br/>${details}`).openPopup();
+        marker.bindPopup(`<div>${details}</div>`).openPopup();
       });
 
       marker.addTo(map);
