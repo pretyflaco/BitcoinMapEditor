@@ -278,7 +278,7 @@ function MerchantMarkers() {
               <a href="https://pay.blink.sv/${merchant.username}" 
                  target="_blank" 
                  rel="noopener noreferrer" 
-                 class="inline-block mt-2 px-3 py-1 bg-[#FB5607] text-white font-bold rounded-full hover:bg-opacity-90 text-sm">
+                 class="inline-block mt-2 px-3 py-1 bg-[#FB5607] text-[#FFFFFF] font-bold rounded-full hover:bg-opacity-90 text-sm">
                 Pay this user
               </a>
             </div>`;
