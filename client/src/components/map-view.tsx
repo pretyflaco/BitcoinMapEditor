@@ -53,17 +53,27 @@ function ExistingMerchants() {
   return (
     <>
       {/* Show local merchants */}
-      {localMerchants.map((merchant) => (
-        <Marker
-          key={`local-${merchant.id}`}
-          position={[Number(merchant.latitude), Number(merchant.longitude)]}
-        />
-      ))}
+      {localMerchants.map((merchant) => {
+        const lat = Number(merchant.latitude);
+        const lng = Number(merchant.longitude);
+
+        if (!isNaN(lat) && !isNaN(lng)) {
+          return (
+            <Marker
+              key={`local-${merchant.id}`}
+              position={[lat, lng]}
+            />
+          );
+        }
+        return null;
+      })}
 
       {/* Show btcmap.org merchants */}
       {btcMapMerchants.map((merchant) => {
         // Check if merchant has valid coordinates in the properties
-        if (merchant.osm_json) {
+        if (merchant.osm_json && 
+            typeof merchant.osm_json.lat === 'number' && 
+            typeof merchant.osm_json.lon === 'number') {
           const { lat, lon } = merchant.osm_json;
           return (
             <Marker
