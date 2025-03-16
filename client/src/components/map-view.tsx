@@ -63,11 +63,11 @@ function ExistingMerchants() {
       {/* Show btcmap.org merchants */}
       {btcMapMerchants.map((merchant) => {
         // Check if merchant has valid coordinates in the properties
-        if (merchant.properties && merchant.geometry?.coordinates) {
-          const [lon, lat] = merchant.geometry.coordinates;
+        if (merchant.osm_json) {
+          const { lat, lon } = merchant.osm_json;
           return (
             <Marker
-              key={`btcmap-${merchant.properties.id}`}
+              key={`btcmap-${merchant.id}`}
               position={[lat, lon]}
             />
           );
