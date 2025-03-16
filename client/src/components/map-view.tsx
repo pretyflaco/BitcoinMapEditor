@@ -175,8 +175,8 @@ export default function MapView({ selectedLocation, onLocationSelect }: MapViewP
     <MapContainer
       center={[0, 0]}
       zoom={2}
-      style={{ height: "500px", width: "100%" }}
-      className="rounded-lg"
+      style={{ height: "100%", width: "100%" }}
+      className="absolute inset-0"
     >
       <MapLayer />
       <LocationMarker
