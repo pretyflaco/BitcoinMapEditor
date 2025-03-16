@@ -67,7 +67,8 @@ function LocationMarker({ selectedLocation, onLocationSelect }: MapViewProps) {
 
 function MerchantMarkers() {
   const map = useMap();
-  const markersMap = new Map<string, L.Marker>();
+  const markersRef = new Map<string, L.Marker>();
+  const MAX_MARKERS = 100;
 
   // Fetch merchants data
   const { data: localMerchants = [] } = useQuery<Merchant[]>({
@@ -78,72 +79,85 @@ function MerchantMarkers() {
     queryKey: ["/api/btcmap/merchants"],
   });
 
-  // Debounced function to update markers based on viewport
   const updateVisibleMarkers = useCallback(() => {
     if (!map) return;
 
     const bounds = map.getBounds();
     const zoom = map.getZoom();
 
-    // Clear existing markers outside viewport
-    markersMap.forEach((marker, id) => {
-      const pos = marker.getLatLng();
-      if (!bounds.contains(pos)) {
-        map.removeLayer(marker);
-        markersMap.delete(id);
-      }
+    // Remove all existing markers
+    markersRef.forEach((marker) => {
+      map.removeLayer(marker);
     });
+    markersRef.clear();
 
-    // Add markers for merchants in viewport
-    const addMarkerIfInBounds = (merchant: any, isLocal: boolean) => {
-      let lat, lng, id, name, details;
+    // Filter and sort merchants by distance to center
+    const center = map.getCenter();
+    const visibleMerchants = [];
 
-      if (isLocal) {
-        lat = Number(merchant.latitude);
-        lng = Number(merchant.longitude);
-        id = `local-${merchant.id}`;
-        name = merchant.name;
-        details = `${merchant.address}<br/><em>${merchant.type}</em>`;
-      } else {
-        if (!merchant.osm_json?.lat || !merchant.osm_json?.lon) return;
-        lat = merchant.osm_json.lat;
-        lng = merchant.osm_json.lon;
-        id = merchant.id;
-        name = merchant.osm_json.tags?.name || 'Unknown Merchant';
-        details = `${merchant.osm_json.tags?.['addr:street'] || ''}<br/>
-                  <em>${merchant.osm_json.tags?.tourism || merchant.osm_json.tags?.shop || 'Other'}</em>`;
+    // Process local merchants
+    for (const merchant of localMerchants) {
+      const lat = Number(merchant.latitude);
+      const lng = Number(merchant.longitude);
+      if (!isNaN(lat) && !isNaN(lng) && bounds.contains([lat, lng])) {
+        const distance = center.distanceTo([lat, lng]);
+        visibleMerchants.push({ merchant, isLocal: true, distance });
       }
+    }
 
-      if (!isNaN(lat) && !isNaN(lng) && bounds.contains([lat, lng]) && !markersMap.has(id)) {
+    // Process BTCMap merchants
+    for (const merchant of btcMapMerchants) {
+      if (!merchant.osm_json?.lat || !merchant.osm_json?.lon) continue;
+      const lat = merchant.osm_json.lat;
+      const lng = merchant.osm_json.lon;
+      if (bounds.contains([lat, lng])) {
+        const distance = center.distanceTo([lat, lng]);
+        visibleMerchants.push({ merchant, isLocal: false, distance });
+      }
+    }
+
+    // Sort by distance and limit
+    visibleMerchants
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, MAX_MARKERS)
+      .forEach(({ merchant, isLocal }) => {
+        const lat = isLocal ? Number(merchant.latitude) : merchant.osm_json.lat;
+        const lng = isLocal ? Number(merchant.longitude) : merchant.osm_json.lon;
+        const id = isLocal ? `local-${merchant.id}` : merchant.id;
+
         const marker = L.marker([lat, lng]);
-        marker.bindPopup(`<strong>${name}</strong><br/>${details}`);
-        marker.addTo(map);
-        markersMap.set(id, marker);
-      }
-    };
+        marker.on('click', () => {
+          const name = isLocal ? merchant.name : merchant.osm_json.tags?.name || 'Unknown Merchant';
+          const details = isLocal 
+            ? `${merchant.address}<br/><em>${merchant.type}</em>`
+            : `${merchant.osm_json.tags?.['addr:street'] || ''}<br/>
+               <em>${merchant.osm_json.tags?.tourism || merchant.osm_json.tags?.shop || 'Other'}</em>`;
 
-    // Only process visible area merchants
-    localMerchants.forEach(m => addMarkerIfInBounds(m, true));
-    btcMapMerchants.forEach(m => addMarkerIfInBounds(m, false));
+          marker.bindPopup(`<strong>${name}</strong><br/>${details}`).openPopup();
+        });
+
+        marker.addTo(map);
+        markersRef.set(id, marker);
+      });
 
   }, [map, localMerchants, btcMapMerchants]);
 
   useEffect(() => {
     if (!map) return;
 
-    // Add event listeners for map movement
-    const debouncedUpdate = L.Util.throttle(updateVisibleMarkers, 300);
-    map.on('moveend', debouncedUpdate);
-    map.on('zoomend', debouncedUpdate);
+    // Throttle updates to prevent too frequent refreshes
+    const throttledUpdate = L.Util.throttle(updateVisibleMarkers, 500);
+    map.on('moveend', throttledUpdate);
+    map.on('zoomend', throttledUpdate);
 
     // Initial update
     updateVisibleMarkers();
 
     return () => {
-      map.off('moveend', debouncedUpdate);
-      map.off('zoomend', debouncedUpdate);
-      markersMap.forEach(marker => map.removeLayer(marker));
-      markersMap.clear();
+      map.off('moveend', throttledUpdate);
+      map.off('zoomend', throttledUpdate);
+      markersRef.forEach(marker => map.removeLayer(marker));
+      markersRef.clear();
     };
   }, [map, updateVisibleMarkers]);
 
