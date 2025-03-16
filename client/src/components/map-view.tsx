@@ -93,13 +93,14 @@ function LocationMarker({ selectedLocation, onLocationSelect }: MapViewProps) {
 }
 
 // Add custom icon definitions
-// Define marker icons with proper className handling for color filters
-const createCustomIcon = (type: 'blink' | 'btcmap' | 'default') => L.divIcon({
-  className: `marker-${type}`,
-  html: '<img src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png" />',
+const createCustomIcon = (type: 'blink' | 'btcmap' | 'default') => L.icon({
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+  shadowSize: [41, 41],
+  className: `marker-${type}`, // Will be styled with CSS
 });
 
 const blinkIcon = createCustomIcon('blink');
@@ -319,15 +320,17 @@ function MerchantMarkers() {
 // Add custom marker colors to CSS
 const styleSheet = document.createElement("style");
 styleSheet.textContent = `
-  .marker-blink {
-    background-color: #FB5607; /* For #FB5607 orange */
-  }
-  .marker-btcmap {
-    background-color: #0891B2; /* For #0891B2 cyan */
-  }
-  .marker-default {
-    background-color: #10B981; /* For #10B981 green */
-  }
+.marker-blink img {
+  filter: hue-rotate(25deg) saturate(200%) brightness(1.2); /* For #FB5607 orange */
+}
+
+.marker-btcmap img {
+  filter: hue-rotate(195deg) saturate(150%) brightness(0.9); /* For #0891B2 cyan */
+}
+
+.marker-default img {
+  filter: hue-rotate(135deg) saturate(150%) brightness(0.9); /* For #10B981 green */
+}
 `;
 document.head.appendChild(styleSheet);
 

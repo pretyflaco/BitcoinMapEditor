@@ -32,7 +32,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Proxy endpoint for btcmap.org API
   app.get("/api/btcmap/merchants", async (_req, res) => {
     try {
       const response = await fetch("https://api.btcmap.org/v2/elements", {
@@ -57,12 +56,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // New endpoint for Blink merchants
   app.get("/api/blink/merchants", async (_req, res) => {
     try {
       const query = gql`
-        query {
+        query BusinessMapMarkers {
           businessMapMarkers {
+            username
             mapInfo {
               coordinates {
                 latitude
@@ -70,13 +69,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
               title
             }
-            username
           }
         }
       `;
 
+      console.log('Querying Blink API...');
       const data = await request(
-        BLINK_API, 
+        BLINK_API,
         query,
         {},
         {
@@ -84,6 +83,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           'Accept': 'application/json'
         }
       );
+      console.log('Blink API response:', JSON.stringify(data, null, 2));
       res.json(data.businessMapMarkers);
     } catch (error) {
       console.error('Blink API error:', error);
