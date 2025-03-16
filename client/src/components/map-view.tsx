@@ -321,10 +321,13 @@ function MerchantMarkers() {
 const styleSheet = document.createElement("style");
 styleSheet.textContent = `
   .marker-blink {
-    filter: hue-rotate(30deg) saturate(150%);
+    filter: hue-rotate(15deg) saturate(200%); /* For #FB5607 orange */
   }
   .marker-btcmap {
-    filter: hue-rotate(180deg) saturate(150%);
+    filter: hue-rotate(140deg) saturate(150%); /* For #0891B2 cyan */
+  }
+  .marker-default {
+    filter: hue-rotate(80deg) saturate(150%); /* For #10B981 green */
   }
 `;
 document.head.appendChild(styleSheet);

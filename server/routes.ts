@@ -61,8 +61,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/blink/merchants", async (_req, res) => {
     try {
       const query = gql`
-        query {
+        {
           mapMarkers {
+            username
             mapInfo {
               coordinates {
                 latitude
@@ -70,12 +71,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
               title
             }
-            username
           }
         }
       `;
 
-      const data = await request(BLINK_API, query);
+      const data = await request(
+        BLINK_API, 
+        query,
+        {},
+        {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      );
       res.json(data.mapMarkers);
     } catch (error) {
       console.error('Blink API error:', error);
