@@ -121,6 +121,7 @@ const defaultIcon = createCustomIcon('default');
 
 function MerchantMarkers() {
   const map = useMap();
+  const { theme } = useTheme();
   const markersRef = new Map<string, L.Marker>();
   const MAX_MARKERS = 100;
   const GRID_SIZE = 5;
@@ -266,14 +267,24 @@ function MerchantMarkers() {
           id = `blink-${merchant.username}`;
           name = merchant.mapInfo.title;
           details = `
-            <strong>${merchant.mapInfo.title}</strong><br/>
-            ${merchant.username}<br/>
-            <a href="https://pay.blink.sv/${merchant.username}" 
-               target="_blank" 
-               rel="noopener noreferrer" 
-               class="inline-block mt-2 px-3 py-1 bg-[#FB5607] text-white rounded hover:bg-opacity-90 text-sm">
-              Pay this user
-            </a>`;
+            <div class="text-center">
+              <img 
+                src="${theme === 'dark'
+                  ? 'https://cdn.prod.website-files.com/6720ed07d56bdfa402a08023/6720ed07d56bdfa402a081b8_icon-dark-bg-p-500.png'
+                  : 'https://cdn.prod.website-files.com/6720ed07d56bdfa402a08023/6720ed07d56bdfa402a081b7_blink-icon-p-500.png'
+                }" 
+                alt="Blink Logo" 
+                class="w-12 h-12 mx-auto mb-2"
+              />
+              <strong>${merchant.mapInfo.title}</strong><br/>
+              <span>@${merchant.username}</span><br/>
+              <a href="https://pay.blink.sv/${merchant.username}" 
+                 target="_blank" 
+                 rel="noopener noreferrer" 
+                 class="inline-block mt-2 px-3 py-1 bg-[#FB5607] text-white font-bold rounded hover:bg-opacity-90 text-sm">
+                Pay this user
+              </a>
+            </div>`;
           icon = blinkIcon;
           break;
 
@@ -296,12 +307,19 @@ function MerchantMarkers() {
           const openingHours = tags['opening_hours'];
 
           details = `
-            <strong>${name}</strong><br/>
-            <em>${type}</em><br/>
-            ${address ? `📍 ${address}<br/>` : ''}
-            ${phone ? `📞 ${phone}<br/>` : ''}
-            ${website ? `🌐 <a href="${website}" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">${website}</a><br/>` : ''}
-            ${openingHours ? `⏰ ${openingHours}` : ''}`;
+            <div class="text-center">
+              <img 
+                src="https://btcmap.org/images/logo.svg" 
+                alt="BTCMap Logo" 
+                class="w-12 h-12 mx-auto mb-2"
+              />
+              <strong>${name}</strong><br/>
+              <em>${type}</em><br/>
+              ${address ? `📍 ${address}<br/>` : ''}
+              ${phone ? `📞 ${phone}<br/>` : ''}
+              ${website ? `🌐 <a href="${website}" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">${website}</a><br/>` : ''}
+              ${openingHours ? `⏰ ${openingHours}` : ''}
+            </div>`;
           icon = btcmapIcon;
           break;
 
@@ -323,7 +341,7 @@ function MerchantMarkers() {
       markersRef.set(id, marker);
     });
 
-  }, [map, localMerchants, btcMapMerchants, blinkMerchants, blinkIcon, btcmapIcon, defaultIcon]);
+  }, [map, localMerchants, btcMapMerchants, blinkMerchants, blinkIcon, btcmapIcon, defaultIcon, theme]);
 
   useEffect(() => {
     if (!map) return;
