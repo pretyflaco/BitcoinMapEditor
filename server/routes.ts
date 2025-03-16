@@ -5,7 +5,7 @@ import { insertMerchantSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { request, gql } from 'graphql-request';
 
-const BLINK_API = 'https://api.staging.blink.sv/graphql';
+const BLINK_API = 'https://api.blink.sv/graphql';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/merchants", async (req, res) => {
@@ -58,8 +58,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/blink/merchants", async (_req, res) => {
     try {
+      console.log('Querying Blink API...');
       const query = gql`
-        query BusinessMapMarkers {
+        query GetBusinessMapMarkers {
           businessMapMarkers {
             username
             mapInfo {
@@ -73,7 +74,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       `;
 
-      console.log('Querying Blink API...');
       const data = await request(
         BLINK_API,
         query,
@@ -83,7 +83,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           'Accept': 'application/json'
         }
       );
-      console.log('Blink API response:', JSON.stringify(data, null, 2));
+
+      if (!data?.businessMapMarkers) {
+        throw new Error('No business map markers returned from Blink API');
+      }
+
+      console.log('Blink API Response:', JSON.stringify(data, null, 2)); //Added detailed logging
+
       res.json(data.businessMapMarkers);
     } catch (error) {
       console.error('Blink API error:', error);
