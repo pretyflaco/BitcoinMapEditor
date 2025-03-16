@@ -57,6 +57,14 @@ export default function Home() {
     }
   });
 
+  // Update form values when selectedLocation changes
+  useEffect(() => {
+    if (selectedLocation) {
+      merchantForm.setValue("latitude", selectedLocation.lat);
+      merchantForm.setValue("longitude", selectedLocation.lng);
+    }
+  }, [selectedLocation, merchantForm]);
+
   const mutation = useMutation({
     mutationFn: async (data: any) => {
       const res = await apiRequest("POST", "/api/merchants", data);

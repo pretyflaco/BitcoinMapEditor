@@ -18,8 +18,8 @@ export const merchants = pgTable("merchants", {
 export const insertMerchantSchema = createInsertSchema(merchants)
   .omit({ id: true, osmId: true })
   .extend({
-    latitude: z.number().min(-90).max(90),
-    longitude: z.number().min(-180).max(180),
+    latitude: z.coerce.number().min(-90).max(90),
+    longitude: z.coerce.number().min(-180).max(180),
     type: z.enum([
       "restaurant",
       "cafe",
