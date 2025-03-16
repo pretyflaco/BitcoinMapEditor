@@ -1,12 +1,14 @@
 import { useEffect, useRef } from "react";
 import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
+import "maplibre-gl/dist/maplibre-gl.css";
 import L from "leaflet";
 import { useQuery } from "@tanstack/react-query";
 import type { Merchant } from "@shared/schema";
 import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import "leaflet.markercluster";
+import "@maplibre/maplibre-gl-leaflet";
 
 // Fix Leaflet default marker icon issue
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -173,6 +175,16 @@ export default function MapView({ selectedLocation, onLocationSelect }: MapViewP
 
   useEffect(() => {
     if (mapRef.current) {
+      // Initialize MapLibre GL layer
+      const maplibreLayer = (L as any).maplibreGL({
+        style: 'https://tiles.openfreemap.org/styles/dark',
+        attribution: '© OpenFreeMap contributors'
+      });
+
+      // Add the layer to the map
+      mapRef.current.addLayer(maplibreLayer);
+
+      // Force a resize after adding the layer
       setTimeout(() => {
         mapRef.current?.invalidateSize();
       }, 100);
@@ -187,10 +199,6 @@ export default function MapView({ selectedLocation, onLocationSelect }: MapViewP
       style={{ height: "500px", width: "100%" }}
       className="rounded-lg"
     >
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
       <LocationMarker
         selectedLocation={selectedLocation}
         onLocationSelect={onLocationSelect}
