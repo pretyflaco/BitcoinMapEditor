@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useState } from "react";
 import { MapContainer, Marker, useMap, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -17,13 +17,43 @@ L.Control.SearchAndLocate = L.Control.extend({
     container.style.backgroundColor = 'white';
     container.style.padding = '5px';
 
+    // Search container
+    const searchContainer = L.DomUtil.create('div', '', container);
+    searchContainer.style.display = 'flex';
+    searchContainer.style.alignItems = 'center';
+    searchContainer.style.marginBottom = '5px';
+
     // Search button
-    const searchButton = L.DomUtil.create('a', '', container);
+    const searchButton = L.DomUtil.create('a', '', searchContainer);
     searchButton.href = '#';
     searchButton.title = 'Search merchants';
     searchButton.style.display = 'block';
     searchButton.style.padding = '5px';
     searchButton.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`;
+
+    // Search input (hidden by default)
+    const searchInput = L.DomUtil.create('input', '', searchContainer);
+    searchInput.type = 'text';
+    searchInput.placeholder = 'Search merchants...';
+    searchInput.style.display = 'none';
+    searchInput.style.marginLeft = '5px';
+    searchInput.style.padding = '4px 8px';
+    searchInput.style.border = '1px solid #ccc';
+    searchInput.style.borderRadius = '4px';
+    searchInput.style.width = '200px';
+
+    // Search results container
+    const searchResults = L.DomUtil.create('div', '', container);
+    searchResults.style.display = 'none';
+    searchResults.style.position = 'absolute';
+    searchResults.style.backgroundColor = 'white';
+    searchResults.style.border = '1px solid #ccc';
+    searchResults.style.borderRadius = '4px';
+    searchResults.style.marginTop = '5px';
+    searchResults.style.maxHeight = '200px';
+    searchResults.style.overflowY = 'auto';
+    searchResults.style.width = '250px';
+    searchResults.style.zIndex = '1000';
 
     // Locate button
     const locateButton = L.DomUtil.create('a', '', container);
@@ -35,12 +65,30 @@ L.Control.SearchAndLocate = L.Control.extend({
 
     // Prevent map click events when clicking controls
     L.DomEvent.disableClickPropagation(container);
+    L.DomEvent.disableScrollPropagation(container);
 
     // Add click handlers
     L.DomEvent.on(searchButton, 'click', function(e) {
       L.DomEvent.preventDefault(e);
-      if (this.options.onSearchClick) {
-        this.options.onSearchClick();
+      const isVisible = searchInput.style.display === 'block';
+      searchInput.style.display = isVisible ? 'none' : 'block';
+      searchResults.style.display = 'none';
+      if (!isVisible) {
+        searchInput.focus();
+      }
+    });
+
+    // Search input handler
+    L.DomEvent.on(searchInput, 'input', function(e) {
+      const query = (e.target as HTMLInputElement).value.toLowerCase();
+      if (query.length < 2) {
+        searchResults.style.display = 'none';
+        return;
+      }
+
+      // Get current markers from the map's global scope
+      if (this.options.onSearch) {
+        this.options.onSearch(query, searchResults);
       }
     }, this);
 
@@ -49,23 +97,107 @@ L.Control.SearchAndLocate = L.Control.extend({
       if (map.locate) {
         map.locate({setView: true, maxZoom: 16});
       }
-    }, this);
+    });
 
     return container;
   }
 });
-
-// Function to handle search click
-function onSearchClick() {
-  // TODO: Implement search functionality
-  console.log('Search clicked');
-}
 
 // MapLayer component to handle MapLibre GL initialization
 function MapLayer() {
   const map = useMap();
   const { theme } = useTheme();
   const { toast } = useToast();
+
+  // Fetch all merchants data
+  const { data: localMerchants = [] } = useQuery<Merchant[]>({
+    queryKey: ["/api/merchants"],
+  });
+
+  const { data: btcMapMerchants = [] } = useQuery<any[]>({
+    queryKey: ["/api/btcmap/merchants"],
+  });
+
+  const { data: blinkMerchants = [] } = useQuery<any[]>({
+    queryKey: ["/api/blink/merchants"],
+  });
+
+  // Function to handle search
+  const handleSearch = useCallback((query: string, resultsContainer: HTMLDivElement) => {
+    const searchResults: Array<{
+      name: string;
+      type: 'local' | 'btcmap' | 'blink';
+      lat: number;
+      lng: number;
+    }> = [];
+
+    // Search in local merchants
+    localMerchants.forEach(merchant => {
+      if (merchant.name.toLowerCase().includes(query)) {
+        searchResults.push({
+          name: merchant.name,
+          type: 'local',
+          lat: Number(merchant.latitude),
+          lng: Number(merchant.longitude)
+        });
+      }
+    });
+
+    // Search in BTCMap merchants
+    btcMapMerchants.forEach(merchant => {
+      const name = merchant.osm_json?.tags?.name || '';
+      if (name.toLowerCase().includes(query)) {
+        searchResults.push({
+          name,
+          type: 'btcmap',
+          lat: merchant.osm_json.lat,
+          lng: merchant.osm_json.lon
+        });
+      }
+    });
+
+    // Search in Blink merchants
+    blinkMerchants.forEach(merchant => {
+      if (merchant.mapInfo.title.toLowerCase().includes(query)) {
+        searchResults.push({
+          name: merchant.mapInfo.title,
+          type: 'blink',
+          lat: merchant.mapInfo.coordinates.latitude,
+          lng: merchant.mapInfo.coordinates.longitude
+        });
+      }
+    });
+
+    // Display results
+    resultsContainer.innerHTML = '';
+    resultsContainer.style.display = searchResults.length ? 'block' : 'none';
+
+    searchResults.forEach(result => {
+      const resultItem = document.createElement('div');
+      resultItem.style.padding = '8px';
+      resultItem.style.cursor = 'pointer';
+      resultItem.style.borderBottom = '1px solid #eee';
+      resultItem.innerHTML = `
+        <div style="font-weight: bold;">${result.name}</div>
+        <div style="color: #666; font-size: 0.9em;">${result.type}</div>
+      `;
+
+      resultItem.addEventListener('mouseover', () => {
+        resultItem.style.backgroundColor = '#f5f5f5';
+      });
+
+      resultItem.addEventListener('mouseout', () => {
+        resultItem.style.backgroundColor = 'white';
+      });
+
+      resultItem.addEventListener('click', () => {
+        map.flyTo([result.lat, result.lng], 16);
+        resultsContainer.style.display = 'none';
+      });
+
+      resultsContainer.appendChild(resultItem);
+    });
+  }, [map, localMerchants, btcMapMerchants, blinkMerchants]);
 
   useEffect(() => {
     const style = theme === 'dark'
@@ -82,15 +214,9 @@ function MapLayer() {
     // Add custom controls
     const searchAndLocateControl = new (L.Control as any).SearchAndLocate({
       position: 'topleft',
-      onSearchClick: onSearchClick
+      onSearch: handleSearch
     });
     map.addControl(searchAndLocateControl);
-
-    // Create an attribution control
-    const attributionControl = L.control.attribution({
-      position: 'bottomright'
-    }).addTo(map);
-    attributionControl.addAttribution('© OpenFreeMap contributors');
 
     // Handle location events
     map.on('locationfound', (e: L.LocationEvent) => {
@@ -111,9 +237,8 @@ function MapLayer() {
         map.removeLayer(maplibreLayer);
       }
       map.removeControl(searchAndLocateControl);
-      map.removeControl(attributionControl);
     };
-  }, [map, theme, toast]);
+  }, [map, theme, toast, handleSearch]);
 
   return null;
 }
@@ -432,7 +557,7 @@ export default function MapView({ selectedLocation, onLocationSelect }: MapViewP
       style={{ height: "100%", width: "100%" }}
       className="absolute inset-0"
       zoomControl={true} // Enable default zoom controls
-      attributionControl={true} // Enable attribution control
+      attributionControl={false}
     >
       <MapLayer />
       <LocationMarker
