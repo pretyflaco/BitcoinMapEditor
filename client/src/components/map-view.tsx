@@ -80,11 +80,8 @@ function ExistingMerchants() {
   const markersRef = useRef<L.Marker[]>([]);
 
   // Get map instance from parent
-  const map = useMapEvents({
-    load: (e) => {
-      mapRef.current = e.target;
-    }
-  });
+  const map = useMap();
+  mapRef.current = map;
 
   // Fetch merchants data
   const { data: localMerchants = [] } = useQuery<Merchant[]>({
@@ -157,6 +154,7 @@ function ExistingMerchants() {
 
           if (!isNaN(lat) && !isNaN(lng)) {
             const marker = L.marker([lat, lng]);
+            console.log(`Adding marker at: ${lat}, ${lng} for ${isLocal ? 'local' : 'BTCMap'} merchant`);
             markersRef.current.push(marker);
             clusterGroup.addLayer(marker);
           }
@@ -193,11 +191,8 @@ function ExistingMerchants() {
 }
 
 export default function MapView({ selectedLocation, onLocationSelect }: MapViewProps) {
-  const mapRef = useRef<L.Map>(null);
-
   return (
     <MapContainer
-      ref={mapRef}
       center={[0, 0]}
       zoom={2}
       style={{ height: "500px", width: "100%" }}
