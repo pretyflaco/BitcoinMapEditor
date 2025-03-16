@@ -32,13 +32,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Proxy endpoint for btcmap.org API
   app.get("/api/btcmap/merchants", async (_req, res) => {
     try {
-      const response = await fetch("https://btcmap.org/api/v1/elements/map");
+      const response = await fetch("https://btcmap.org/api/v1/elements/map", {
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'BTCMap-Frontend/1.0'
+        }
+      });
+
       if (!response.ok) {
         throw new Error(`BTCMap API error: ${response.statusText}`);
       }
+
       const data = await response.json();
+
+      // Log the first item to understand the structure
+      console.log('BTCMap API response example:', 
+        data.length > 0 ? JSON.stringify(data[0], null, 2) : 'No data');
+
       res.json(data);
     } catch (error) {
+      console.error('BTCMap API error:', error);
       res.status(500).json({ 
         message: "Failed to fetch merchants from BTCMap",
         error: error instanceof Error ? error.message : "Unknown error"

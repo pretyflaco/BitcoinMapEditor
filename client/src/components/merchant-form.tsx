@@ -71,21 +71,33 @@ export default function MerchantForm({
     },
   });
 
+  // Watch latitude and longitude values to sync with map
+  const latitude = form.watch("latitude");
+  const longitude = form.watch("longitude");
+
+  // Update map when lat/lng inputs change
+  const handleCoordinateChange = (lat: number, lng: number) => {
+    onLocationChange({ lat, lng });
+  };
+
   function onSubmit(data: InsertMerchant) {
-    if (!selectedLocation) {
+    // Use either manually entered coordinates or map selection
+    const submitData = {
+      ...data,
+      latitude: latitude || selectedLocation?.lat || 0,
+      longitude: longitude || selectedLocation?.lng || 0,
+    };
+
+    if (!submitData.latitude || !submitData.longitude) {
       toast({
         title: "Error",
-        description: "Please select a location on the map",
+        description: "Please select a location on the map or enter coordinates",
         variant: "destructive",
       });
       return;
     }
 
-    mutation.mutate({
-      ...data,
-      latitude: selectedLocation.lat,
-      longitude: selectedLocation.lng,
-    });
+    mutation.mutate(submitData);
   }
 
   return (
@@ -130,6 +142,58 @@ export default function MerchantForm({
             </FormItem>
           )}
         />
+
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="latitude"
+            render={({ field: { onChange, ...field } }) => (
+              <FormItem>
+                <FormLabel>Latitude</FormLabel>
+                <FormControl>
+                  <Input 
+                    {...field}
+                    type="number"
+                    step="any"
+                    onChange={(e) => {
+                      const lat = parseFloat(e.target.value);
+                      onChange(e);
+                      if (!isNaN(lat)) {
+                        handleCoordinateChange(lat, longitude || 0);
+                      }
+                    }}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="longitude"
+            render={({ field: { onChange, ...field } }) => (
+              <FormItem>
+                <FormLabel>Longitude</FormLabel>
+                <FormControl>
+                  <Input 
+                    {...field}
+                    type="number"
+                    step="any"
+                    onChange={(e) => {
+                      const lng = parseFloat(e.target.value);
+                      onChange(e);
+                      if (!isNaN(lng)) {
+                        handleCoordinateChange(latitude || 0, lng);
+                      }
+                    }}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <FormField
           control={form.control}
