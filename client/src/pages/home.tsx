@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import MapView from "@/components/map-view";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Form, FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
@@ -18,10 +18,18 @@ export default function Home() {
 
   const locationForm = useForm({
     defaultValues: {
-      latitude: "",
-      longitude: ""
+      latitude: selectedLocation?.lat?.toString() || "",
+      longitude: selectedLocation?.lng?.toString() || ""
     }
   });
+
+  // Update location form when marker changes
+  useEffect(() => {
+    if (selectedLocation) {
+      locationForm.setValue("latitude", selectedLocation.lat.toString());
+      locationForm.setValue("longitude", selectedLocation.lng.toString());
+    }
+  }, [selectedLocation]);
 
   const merchantForm = useForm({
     resolver: zodResolver(insertMerchantSchema),
@@ -37,6 +45,11 @@ export default function Home() {
   });
 
   const handleAddLocation = () => {
+    // If there's a selected location, pre-populate the form
+    if (selectedLocation) {
+      locationForm.setValue("latitude", selectedLocation.lat.toString());
+      locationForm.setValue("longitude", selectedLocation.lng.toString());
+    }
     setShowLocationInput(true);
   };
 
