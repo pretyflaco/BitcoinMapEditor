@@ -198,71 +198,61 @@ function MerchantMarkers() {
       }
     });
 
-    // Group by grid cells
+    // Group by grid cells and data source
     const cellGroups = grid.reduce((acc, item) => {
       if (!acc[item.cell]) {
-        acc[item.cell] = [];
+        acc[item.cell] = {
+          blink: [],
+          btcmap: [],
+          local: []
+        };
       }
-      acc[item.cell].push(item);
+      acc[item.cell][item.source].push(item);
       return acc;
-    }, {} as Record<string, typeof grid>);
+    }, {} as Record<string, Record<'blink' | 'btcmap' | 'local', typeof grid>>);
 
-    // Select markers evenly from cells
+    // Select markers evenly from cells and sources
     const selectedMarkers: typeof grid = [];
-    const maxPerCell = Math.ceil(MAX_MARKERS / (GRID_SIZE * GRID_SIZE));
+    const maxPerSource = Math.floor(MAX_MARKERS / 3); // Distribute evenly among sources
+    const maxPerCellPerSource = Math.ceil(maxPerSource / (GRID_SIZE * GRID_SIZE));
 
-    Object.values(cellGroups).forEach(cellMarkers => {
-      // Sort markers within cell by spreading them out
-      const cellCenter = cellMarkers.reduce(
-        (acc, m) => {
-          const lat = m.source === 'blink'
-            ? m.merchant.mapInfo.coordinates.latitude
-            : m.source === 'btcmap'
-              ? m.merchant.osm_json.lat
-              : Number(m.merchant.latitude);
-          const lng = m.source === 'blink'
-            ? m.merchant.mapInfo.coordinates.longitude
-            : m.source === 'btcmap'
-              ? m.merchant.osm_json.lon
-              : Number(m.merchant.longitude);
-          return { lat: acc.lat + lat / cellMarkers.length, lng: acc.lng + lng / cellMarkers.length };
-        },
-        { lat: 0, lng: 0 }
-      );
+    Object.values(cellGroups).forEach(cellSources => {
+      // For each cell, take an equal number from each source
+      ['blink', 'btcmap', 'local'].forEach(source => {
+        const markers = cellSources[source as 'blink' | 'btcmap' | 'local'];
+        if (markers.length === 0) return;
 
-      // Sort by distance from cell center
-      cellMarkers.sort((a, b) => {
-        const aLat = a.source === 'blink'
-          ? a.merchant.mapInfo.coordinates.latitude
-          : a.source === 'btcmap'
-            ? a.merchant.osm_json.lat
-            : Number(a.merchant.latitude);
-        const aLng = a.source === 'blink'
-          ? a.merchant.mapInfo.coordinates.longitude
-          : a.source === 'btcmap'
-            ? a.merchant.osm_json.lon
-            : Number(a.merchant.longitude);
-        const bLat = b.source === 'blink'
-          ? b.merchant.mapInfo.coordinates.latitude
-          : b.source === 'btcmap'
-            ? b.merchant.osm_json.lat
-            : Number(b.merchant.latitude);
-        const bLng = b.source === 'blink'
-          ? b.merchant.mapInfo.coordinates.longitude
-          : b.source === 'btcmap'
-            ? b.merchant.osm_json.lon
-            : Number(b.merchant.longitude);
+        // Sort by distance from cell center for better distribution
+        const cellCenter = markers.reduce(
+          (acc, m) => {
+            const lat = m.source === 'blink'
+              ? m.merchant.mapInfo.coordinates.latitude
+              : m.source === 'btcmap'
+                ? m.merchant.osm_json.lat
+                : Number(m.merchant.latitude);
+            const lng = m.source === 'blink'
+              ? m.merchant.mapInfo.coordinates.longitude
+              : m.source === 'btcmap'
+                ? m.merchant.osm_json.lon
+                : Number(m.merchant.longitude);
+            return { lat: acc.lat + lat / markers.length, lng: acc.lng + lng / markers.length };
+          },
+          { lat: 0, lng: 0 }
+        );
 
-        const aDist = Math.pow(aLat - cellCenter.lat, 2) + Math.pow(aLng - cellCenter.lng, 2);
-        const bDist = Math.pow(bLat - cellCenter.lat, 2) + Math.pow(bLng - cellCenter.lng, 2);
-        return aDist - bDist;
+        // Take evenly spaced markers
+        const sourceCount = selectedMarkers.filter(m => m.source === source).length;
+        if (sourceCount >= maxPerSource) return;
+
+        const available = maxPerSource - sourceCount;
+        const take = Math.min(maxPerCellPerSource, available, markers.length);
+        const step = Math.max(1, Math.floor(markers.length / take));
+
+        for (let i = 0; i < markers.length && selectedMarkers.length < MAX_MARKERS; i += step) {
+          if (selectedMarkers.filter(m => m.source === source).length >= maxPerSource) break;
+          selectedMarkers.push(markers[i]);
+        }
       });
-
-      // Take evenly spaced markers
-      const step = Math.max(1, Math.floor(cellMarkers.length / maxPerCell));
-      for (let i = 0; i < cellMarkers.length && selectedMarkers.length < MAX_MARKERS; i += step) {
-        selectedMarkers.push(cellMarkers[i]);
-      }
     });
 
     // Create markers for selected points
@@ -328,6 +318,7 @@ function MerchantMarkers() {
 
   return null;
 }
+
 
 // Remove the old styleSheet creation since we're using inline styles now
 
