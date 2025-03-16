@@ -71,7 +71,7 @@
 
   .mobile-controls {
     position: fixed !important;
-    bottom: 20px !important;
+    top: 20px !important;
     left: 20px !important;
     margin: 0 !important;
   }

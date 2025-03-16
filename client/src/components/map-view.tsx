@@ -588,7 +588,6 @@ function MerchantMarkers() {
 }
 
 
-
 export default function MapView({ selectedLocation, onLocationSelect }: MapViewProps) {
   return (
     <MapContainer
@@ -596,7 +595,7 @@ export default function MapView({ selectedLocation, onLocationSelect }: MapViewP
       zoom={2}
       style={{ height: "100%", width: "100%" }}
       className="absolute inset-0"
-      zoomControl={false} // Disable default zoom controls on mobile
+      zoomControl={true} // Enable zoom controls (will be hidden on mobile via CSS)
     >
       <MapLayer />
       <LocationMarker
