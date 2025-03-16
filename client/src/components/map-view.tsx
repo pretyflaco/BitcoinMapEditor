@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 import { MapContainer, Marker, useMap, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -42,10 +42,7 @@ function MapLayer() {
   return null;
 }
 
-function LocationMarker({
-  selectedLocation,
-  onLocationSelect
-}: MapViewProps) {
+function LocationMarker({ selectedLocation, onLocationSelect }: MapViewProps) {
   const map = useMapEvents({
     click(e) {
       onLocationSelect(e.latlng);
@@ -70,61 +67,85 @@ function LocationMarker({
 
 function MerchantMarkers() {
   const map = useMap();
+  const markersMap = new Map<string, L.Marker>();
 
   // Fetch merchants data
   const { data: localMerchants = [] } = useQuery<Merchant[]>({
     queryKey: ["/api/merchants"],
   });
 
-  const { data: btcMapMerchants = [], error } = useQuery<any[]>({
+  const { data: btcMapMerchants = [] } = useQuery<any[]>({
     queryKey: ["/api/btcmap/merchants"],
   });
+
+  // Debounced function to update markers based on viewport
+  const updateVisibleMarkers = useCallback(() => {
+    if (!map) return;
+
+    const bounds = map.getBounds();
+    const zoom = map.getZoom();
+
+    // Clear existing markers outside viewport
+    markersMap.forEach((marker, id) => {
+      const pos = marker.getLatLng();
+      if (!bounds.contains(pos)) {
+        map.removeLayer(marker);
+        markersMap.delete(id);
+      }
+    });
+
+    // Add markers for merchants in viewport
+    const addMarkerIfInBounds = (merchant: any, isLocal: boolean) => {
+      let lat, lng, id, name, details;
+
+      if (isLocal) {
+        lat = Number(merchant.latitude);
+        lng = Number(merchant.longitude);
+        id = `local-${merchant.id}`;
+        name = merchant.name;
+        details = `${merchant.address}<br/><em>${merchant.type}</em>`;
+      } else {
+        if (!merchant.osm_json?.lat || !merchant.osm_json?.lon) return;
+        lat = merchant.osm_json.lat;
+        lng = merchant.osm_json.lon;
+        id = merchant.id;
+        name = merchant.osm_json.tags?.name || 'Unknown Merchant';
+        details = `${merchant.osm_json.tags?.['addr:street'] || ''}<br/>
+                  <em>${merchant.osm_json.tags?.tourism || merchant.osm_json.tags?.shop || 'Other'}</em>`;
+      }
+
+      if (!isNaN(lat) && !isNaN(lng) && bounds.contains([lat, lng]) && !markersMap.has(id)) {
+        const marker = L.marker([lat, lng]);
+        marker.bindPopup(`<strong>${name}</strong><br/>${details}`);
+        marker.addTo(map);
+        markersMap.set(id, marker);
+      }
+    };
+
+    // Only process visible area merchants
+    localMerchants.forEach(m => addMarkerIfInBounds(m, true));
+    btcMapMerchants.forEach(m => addMarkerIfInBounds(m, false));
+
+  }, [map, localMerchants, btcMapMerchants]);
 
   useEffect(() => {
     if (!map) return;
 
-    console.log('Local merchants:', localMerchants);
-    console.log('BTCMap merchants:', btcMapMerchants);
+    // Add event listeners for map movement
+    const debouncedUpdate = L.Util.throttle(updateVisibleMarkers, 300);
+    map.on('moveend', debouncedUpdate);
+    map.on('zoomend', debouncedUpdate);
 
-    // Add local merchants
-    localMerchants.forEach(merchant => {
-      const lat = Number(merchant.latitude);
-      const lng = Number(merchant.longitude);
-      if (!isNaN(lat) && !isNaN(lng)) {
-        const marker = L.marker([lat, lng]);
-        marker.bindPopup(`
-          <strong>${merchant.name}</strong><br/>
-          ${merchant.address}<br/>
-          <em>${merchant.type}</em>
-        `);
-        marker.addTo(map);
-      }
-    });
-
-    // Add BTCMap merchants
-    btcMapMerchants.forEach(merchant => {
-      if (!merchant.osm_json || 
-          typeof merchant.osm_json.lat !== 'number' || 
-          typeof merchant.osm_json.lon !== 'number') {
-        return;
-      }
-      const marker = L.marker([merchant.osm_json.lat, merchant.osm_json.lon]);
-      marker.bindPopup(`
-        <strong>${merchant.osm_json.tags?.name || 'Unknown Merchant'}</strong><br/>
-        ${merchant.osm_json.tags?.['addr:street'] || ''}<br/>
-        <em>${merchant.osm_json.tags?.tourism || merchant.osm_json.tags?.shop || 'Other'}</em>
-      `);
-      marker.addTo(map);
-    });
+    // Initial update
+    updateVisibleMarkers();
 
     return () => {
-      map.eachLayer((layer) => {
-        if (layer instanceof L.Marker) {
-          map.removeLayer(layer);
-        }
-      });
+      map.off('moveend', debouncedUpdate);
+      map.off('zoomend', debouncedUpdate);
+      markersMap.forEach(marker => map.removeLayer(marker));
+      markersMap.clear();
     };
-  }, [map, localMerchants, btcMapMerchants]);
+  }, [map, updateVisibleMarkers]);
 
   return null;
 }
