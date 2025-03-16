@@ -18,9 +18,9 @@ interface MapViewProps {
   onLocationSelect: (location: { lat: number; lng: number }) => void;
 }
 
-function LocationMarker({ 
-  selectedLocation, 
-  onLocationSelect 
+function LocationMarker({
+  selectedLocation,
+  onLocationSelect
 }: MapViewProps) {
   const map = useMapEvents({
     click(e) {
@@ -34,6 +34,7 @@ function LocationMarker({
   ) : null;
 }
 
+// Update the ExistingMerchants component
 function ExistingMerchants() {
   // Fetch our local merchants
   const { data: localMerchants = [] } = useQuery<Merchant[]>({
@@ -41,9 +42,13 @@ function ExistingMerchants() {
   });
 
   // Fetch btcmap.org merchants through our proxy
-  const { data: btcMapMerchants = [] } = useQuery<any[]>({
+  const { data: btcMapMerchants = [], error } = useQuery<any[]>({
     queryKey: ["/api/btcmap/merchants"],
   });
+
+  if (error) {
+    console.error('Error fetching BTCMap merchants:', error);
+  }
 
   return (
     <>
@@ -57,12 +62,13 @@ function ExistingMerchants() {
 
       {/* Show btcmap.org merchants */}
       {btcMapMerchants.map((merchant) => {
-        // Check if merchant has valid coordinates
-        if (merchant.lat && merchant.lon) {
+        // Check if merchant has valid coordinates in the properties
+        if (merchant.properties && merchant.geometry?.coordinates) {
+          const [lon, lat] = merchant.geometry.coordinates;
           return (
             <Marker
-              key={`btcmap-${merchant.id}`}
-              position={[merchant.lat, merchant.lon]}
+              key={`btcmap-${merchant.properties.id}`}
+              position={[lat, lon]}
             />
           );
         }
