@@ -9,12 +9,26 @@ import { useForm } from "react-hook-form";
 import { insertMerchantSchema } from "@shared/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTheme } from "@/hooks/use-theme";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
 
 export default function Home() {
   const [selectedLocation, setSelectedLocation] = useState<{lat: number, lng: number} | null>(null);
   const [showLocationInput, setShowLocationInput] = useState(false);
   const [showMerchantForm, setShowMerchantForm] = useState(false);
   const { theme } = useTheme();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const locationForm = useForm({
     defaultValues: {
@@ -35,13 +49,36 @@ export default function Home() {
     resolver: zodResolver(insertMerchantSchema),
     defaultValues: {
       name: "",
-      username: "",
-      latitude: selectedLocation?.lat || 0,
-      longitude: selectedLocation?.lng || 0,
       address: "",
       description: "",
-      type: "shop"
+      type: "shop",
+      latitude: selectedLocation?.lat || 0,
+      longitude: selectedLocation?.lng || 0,
     }
+  });
+
+  const mutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("POST", "/api/merchants", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Merchant added successfully!",
+      });
+      merchantForm.reset();
+      setShowMerchantForm(false);
+      setSelectedLocation(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/merchants"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   const handleAddLocation = () => {
@@ -69,6 +106,35 @@ export default function Home() {
     setSelectedLocation(null);
     locationForm.reset();
     merchantForm.reset();
+  };
+
+  function onSubmit(data: any) {
+    // Use either manually entered coordinates or map selection
+    const submitData = {
+      ...data,
+      latitude: data.latitude || selectedLocation?.lat || 0,
+      longitude: data.longitude || selectedLocation?.lng || 0,
+    };
+
+    if (!submitData.latitude || !submitData.longitude) {
+      toast({
+        title: "Error",
+        description: "Please select a location on the map or enter coordinates",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    mutation.mutate(submitData);
+  }
+
+  // Watch latitude and longitude values to sync with map
+  const latitude = merchantForm.watch("latitude");
+  const longitude = merchantForm.watch("longitude");
+
+  // Update map when lat/lng inputs change
+  const handleCoordinateChange = (lat: number, lng: number) => {
+    setSelectedLocation({ lat, lng });
   };
 
   return (
@@ -162,7 +228,7 @@ export default function Home() {
                   Suggest Business - Fill the Details of the Business you want to Add
                 </h2>
                 <Form {...merchantForm}>
-                  <form className="space-y-4">
+                  <form onSubmit={merchantForm.handleSubmit(onSubmit)} className="space-y-4">
                     <FormField
                       control={merchantForm.control}
                       name="name"
@@ -175,48 +241,151 @@ export default function Home() {
                         </FormItem>
                       )}
                     />
+
                     <FormField
                       control={merchantForm.control}
-                      name="username"
+                      name="type"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Username</FormLabel>
+                          <FormLabel>Business Type</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select type" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="restaurant">Restaurant</SelectItem>
+                              <SelectItem value="cafe">Cafe</SelectItem>
+                              <SelectItem value="shop">Shop</SelectItem>
+                              <SelectItem value="bar">Bar</SelectItem>
+                              <SelectItem value="hotel">Hotel</SelectItem>
+                              <SelectItem value="other">Other</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={merchantForm.control}
+                        name="latitude"
+                        render={({ field: { onChange, ...field } }) => (
+                          <FormItem>
+                            <FormLabel>Latitude</FormLabel>
+                            <FormControl>
+                              <Input 
+                                {...field}
+                                type="number"
+                                step="any"
+                                onChange={(e) => {
+                                  const lat = parseFloat(e.target.value);
+                                  onChange(e);
+                                  if (!isNaN(lat)) {
+                                    handleCoordinateChange(lat, longitude || 0);
+                                  }
+                                }}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={merchantForm.control}
+                        name="longitude"
+                        render={({ field: { onChange, ...field } }) => (
+                          <FormItem>
+                            <FormLabel>Longitude</FormLabel>
+                            <FormControl>
+                              <Input 
+                                {...field}
+                                type="number"
+                                step="any"
+                                onChange={(e) => {
+                                  const lng = parseFloat(e.target.value);
+                                  onChange(e);
+                                  if (!isNaN(lng)) {
+                                    handleCoordinateChange(latitude || 0, lng);
+                                  }
+                                }}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <FormField
+                      control={merchantForm.control}
+                      name="address"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Address</FormLabel>
                           <FormControl>
                             <Input {...field} />
                           </FormControl>
                         </FormItem>
                       )}
                     />
+
                     <FormField
                       control={merchantForm.control}
-                      name="latitude"
+                      name="description"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Latitude</FormLabel>
+                          <FormLabel>Description</FormLabel>
                           <FormControl>
-                            <Input {...field} value={selectedLocation?.lat} disabled />
+                            <Textarea {...field} />
                           </FormControl>
                         </FormItem>
                       )}
                     />
+
                     <FormField
                       control={merchantForm.control}
-                      name="longitude"
+                      name="website"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Longitude</FormLabel>
+                          <FormLabel>Website (optional)</FormLabel>
                           <FormControl>
-                            <Input {...field} value={selectedLocation?.lng} disabled />
+                            <Input {...field} type="url" />
                           </FormControl>
                         </FormItem>
                       )}
                     />
+
+                    <FormField
+                      control={merchantForm.control}
+                      name="phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Phone (optional)</FormLabel>
+                          <FormControl>
+                            <Input {...field} type="tel" />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+
                     <div className="flex gap-2 mt-8">
                       <Button variant="outline" onClick={handleCancel} className="flex-1">
                         Cancel
                       </Button>
-                      <Button type="submit" className="flex-1">
-                        Submit Merchant
+                      <Button 
+                        type="submit"
+                        className="flex-1"
+                        disabled={mutation.isPending}
+                      >
+                        {mutation.isPending ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Adding Merchant...
+                          </>
+                        ) : (
+                          "Add Merchant"
+                        )}
                       </Button>
                     </div>
                   </form>
