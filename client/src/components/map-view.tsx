@@ -8,18 +8,57 @@ import type { Merchant } from "@shared/schema";
 import "@maplibre/maplibre-gl-leaflet";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
+import { Search, Locate } from "lucide-react";
 
-// Fix Leaflet default marker icon issue
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
-  iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
-  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+// Create custom Leaflet control for search and locate
+L.Control.SearchAndLocate = L.Control.extend({
+  onAdd: function(map: L.Map) {
+    const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+    container.style.backgroundColor = 'white';
+    container.style.padding = '5px';
+
+    // Search button
+    const searchButton = L.DomUtil.create('a', '', container);
+    searchButton.href = '#';
+    searchButton.title = 'Search merchants';
+    searchButton.style.display = 'block';
+    searchButton.style.padding = '5px';
+    searchButton.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`;
+
+    // Locate button
+    const locateButton = L.DomUtil.create('a', '', container);
+    locateButton.href = '#';
+    locateButton.title = 'Find my location';
+    locateButton.style.display = 'block';
+    locateButton.style.padding = '5px';
+    locateButton.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><point cx="12" cy="12" r="3"></point></svg>`;
+
+    // Prevent map click events when clicking controls
+    L.DomEvent.disableClickPropagation(container);
+
+    // Add click handlers
+    L.DomEvent.on(searchButton, 'click', function(e) {
+      L.DomEvent.preventDefault(e);
+      if (this.options.onSearchClick) {
+        this.options.onSearchClick();
+      }
+    }, this);
+
+    L.DomEvent.on(locateButton, 'click', function(e) {
+      L.DomEvent.preventDefault(e);
+      if (map.locate) {
+        map.locate({setView: true, maxZoom: 16});
+      }
+    }, this);
+
+    return container;
+  }
 });
 
-interface MapViewProps {
-  selectedLocation: { lat: number; lng: number } | null;
-  onLocationSelect: (location: { lat: number; lng: number }) => void;
+// Function to handle search click
+function onSearchClick() {
+  // TODO: Implement search functionality
+  console.log('Search clicked');
 }
 
 // MapLayer component to handle MapLibre GL initialization
@@ -40,33 +79,49 @@ function MapLayer() {
 
     map.addLayer(maplibreLayer);
 
-    // Request user's location
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          map.flyTo([latitude, longitude], 13);
-        },
-        (error) => {
-          console.log("Geolocation error or permission denied:", error);
-          // Only show toast for explicit denials, not timeouts or other errors
-          if (error.code === error.PERMISSION_DENIED) {
-            toast({
-              description: "Location access denied. You can still use the map normally.",
-            });
-          }
-        }
-      );
-    }
+    // Add custom controls
+    const searchAndLocateControl = new (L.Control as any).SearchAndLocate({
+      position: 'topright',
+      onSearchClick: onSearchClick
+    });
+    map.addControl(searchAndLocateControl);
+
+    // Handle location events
+    map.on('locationfound', (e: L.LocationEvent) => {
+      const radius = e.accuracy;
+      L.marker(e.latlng).addTo(map)
+        .bindPopup("You are within " + Math.round(radius) + " meters from this point").openPopup();
+      L.circle(e.latlng, radius).addTo(map);
+    });
+
+    map.on('locationerror', (error: L.ErrorEvent) => {
+      toast({
+        description: "Location access error. Please check your browser settings.",
+      });
+    });
 
     return () => {
       if (map && map.hasLayer(maplibreLayer)) {
         map.removeLayer(maplibreLayer);
       }
+      map.removeControl(searchAndLocateControl);
     };
   }, [map, theme, toast]);
 
   return null;
+}
+
+// Fix Leaflet default marker icon issue
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
+  iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
+  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+});
+
+interface MapViewProps {
+  selectedLocation: { lat: number; lng: number } | null;
+  onLocationSelect: (location: { lat: number; lng: number }) => void;
 }
 
 function LocationMarker({ selectedLocation, onLocationSelect }: MapViewProps) {
@@ -362,8 +417,6 @@ function MerchantMarkers() {
 }
 
 
-// Remove the old styleSheet creation since we're using inline styles now
-
 export default function MapView({ selectedLocation, onLocationSelect }: MapViewProps) {
   return (
     <MapContainer
@@ -371,6 +424,7 @@ export default function MapView({ selectedLocation, onLocationSelect }: MapViewP
       zoom={2}
       style={{ height: "100%", width: "100%" }}
       className="absolute inset-0"
+      attributionControl={false} // Disable default attribution
     >
       <MapLayer />
       <LocationMarker
