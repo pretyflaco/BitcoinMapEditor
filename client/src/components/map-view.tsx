@@ -265,7 +265,15 @@ function MerchantMarkers() {
           lng = merchant.mapInfo.coordinates.longitude;
           id = `blink-${merchant.username}`;
           name = merchant.mapInfo.title;
-          details = `Username: ${merchant.username}`;
+          details = `
+            <strong>${merchant.mapInfo.title}</strong><br/>
+            ${merchant.username}<br/>
+            <a href="https://pay.blink.sv/${merchant.username}" 
+               target="_blank" 
+               rel="noopener noreferrer" 
+               class="inline-block mt-2 px-3 py-1 bg-[#FB5607] text-white rounded hover:bg-opacity-90 text-sm">
+              Pay this user
+            </a>`;
           icon = blinkIcon;
           break;
 
@@ -274,8 +282,26 @@ function MerchantMarkers() {
           lng = merchant.osm_json.lon;
           id = merchant.id;
           name = merchant.osm_json.tags?.name || 'Unknown Merchant';
-          details = `${merchant.osm_json.tags?.['addr:street'] || ''}<br/>
-            <em>${merchant.osm_json.tags?.tourism || merchant.osm_json.tags?.shop || 'Other'}</em>`;
+          const tags = merchant.osm_json.tags || {};
+          const address = [
+            tags['addr:street'],
+            tags['addr:housenumber'],
+            tags['addr:city'],
+            tags['addr:country']
+          ].filter(Boolean).join(', ');
+
+          const type = tags.amenity || tags.shop || tags.tourism || tags.leisure || 'Other';
+          const phone = tags.phone || tags['contact:phone'];
+          const website = tags.website || tags['contact:website'];
+          const openingHours = tags['opening_hours'];
+
+          details = `
+            <strong>${name}</strong><br/>
+            <em>${type}</em><br/>
+            ${address ? `📍 ${address}<br/>` : ''}
+            ${phone ? `📞 ${phone}<br/>` : ''}
+            ${website ? `🌐 <a href="${website}" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">${website}</a><br/>` : ''}
+            ${openingHours ? `⏰ ${openingHours}` : ''}`;
           icon = btcmapIcon;
           break;
 
