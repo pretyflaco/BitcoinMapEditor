@@ -86,3 +86,16 @@
   padding: 8px;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
+
+/* Marker color filters */
+.marker-blink img {
+  filter: hue-rotate(25deg) saturate(200%) brightness(1.2); /* For #FB5607 orange */
+}
+
+.marker-btcmap img {
+  filter: hue-rotate(195deg) saturate(150%) brightness(0.9); /* For #0891B2 cyan */
+}
+
+.marker-default img {
+  filter: hue-rotate(135deg) saturate(150%) brightness(0.9); /* For #10B981 green */
+}

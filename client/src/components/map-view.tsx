@@ -93,14 +93,13 @@ function LocationMarker({ selectedLocation, onLocationSelect }: MapViewProps) {
 }
 
 // Add custom icon definitions
-const createCustomIcon = (color: string) => L.icon({
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+// Define marker icons with proper className handling for color filters
+const createCustomIcon = (type: 'blink' | 'btcmap' | 'default') => L.divIcon({
+  className: `marker-${type}`,
+  html: '<img src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png" />',
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-  shadowSize: [41, 41],
-  className: `marker-${color}`, // Will be styled with CSS
 });
 
 const blinkIcon = createCustomIcon('blink');
@@ -142,8 +141,8 @@ function MerchantMarkers() {
     const lngSpan = bounds.getEast() - bounds.getWest();
     const cellLatSize = latSpan / GRID_SIZE;
     const cellLngSize = lngSpan / GRID_SIZE;
-    const grid: Array<{ 
-      merchant: any; 
+    const grid: Array<{
+      merchant: any;
       source: 'local' | 'btcmap' | 'blink';
       cell: string;
     }> = [];
@@ -203,7 +202,7 @@ function MerchantMarkers() {
       // Sort markers within cell by spreading them out
       const cellCenter = cellMarkers.reduce(
         (acc, m) => {
-          const lat = m.source === 'blink' 
+          const lat = m.source === 'blink'
             ? m.merchant.mapInfo.coordinates.latitude
             : m.source === 'btcmap'
               ? m.merchant.osm_json.lat
