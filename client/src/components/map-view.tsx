@@ -81,10 +81,16 @@ function MapLayer() {
 
     // Add custom controls
     const searchAndLocateControl = new (L.Control as any).SearchAndLocate({
-      position: 'topright',
+      position: 'topleft',
       onSearchClick: onSearchClick
     });
     map.addControl(searchAndLocateControl);
+
+    // Create an attribution control
+    const attributionControl = L.control.attribution({
+      position: 'bottomright'
+    }).addTo(map);
+    attributionControl.addAttribution('© OpenFreeMap contributors');
 
     // Handle location events
     map.on('locationfound', (e: L.LocationEvent) => {
@@ -105,6 +111,7 @@ function MapLayer() {
         map.removeLayer(maplibreLayer);
       }
       map.removeControl(searchAndLocateControl);
+      map.removeControl(attributionControl);
     };
   }, [map, theme, toast]);
 
@@ -424,7 +431,8 @@ export default function MapView({ selectedLocation, onLocationSelect }: MapViewP
       zoom={2}
       style={{ height: "100%", width: "100%" }}
       className="absolute inset-0"
-      attributionControl={false} // Disable default attribution
+      zoomControl={true} // Enable default zoom controls
+      attributionControl={true} // Enable attribution control
     >
       <MapLayer />
       <LocationMarker
