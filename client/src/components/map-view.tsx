@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
@@ -90,7 +90,7 @@ function ExistingMerchants() {
     markersRef.current = [];
 
     // Create new cluster group
-    const clusterGroup = (L as any).markerClusterGroup({
+    const clusterGroup = L.markerClusterGroup({
       chunkedLoading: true,
       maxClusterRadius: (zoom: number) => {
         // Adjust cluster radius based on zoom level
@@ -148,6 +148,9 @@ function ExistingMerchants() {
     };
 
     // Process local and BTCMap merchants
+    console.log('Local merchants:', localMerchants);
+    console.log('BTCMap merchants:', btcMapMerchants);
+
     addMarkersInChunks(localMerchants, true);
     addMarkersInChunks(btcMapMerchants, false);
 
