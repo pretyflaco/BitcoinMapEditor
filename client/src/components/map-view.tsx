@@ -2,6 +2,8 @@ import { useEffect, useRef } from "react";
 import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
+import { useQuery } from "@tanstack/react-query";
+import type { Merchant } from "@shared/schema";
 
 // Fix Leaflet default marker icon issue
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -32,6 +34,38 @@ function LocationMarker({
   ) : null;
 }
 
+function ExistingMerchants() {
+  // Fetch our local merchants
+  const { data: localMerchants = [] } = useQuery<Merchant[]>({
+    queryKey: ["/api/merchants"],
+  });
+
+  // Fetch btcmap.org merchants through our proxy
+  const { data: btcMapMerchants = [] } = useQuery<any[]>({
+    queryKey: ["/api/btcmap/merchants"],
+  });
+
+  return (
+    <>
+      {/* Show local merchants */}
+      {localMerchants.map((merchant) => (
+        <Marker
+          key={`local-${merchant.id}`}
+          position={[Number(merchant.latitude), Number(merchant.longitude)]}
+        />
+      ))}
+
+      {/* Show btcmap.org merchants */}
+      {btcMapMerchants.map((merchant) => (
+        <Marker
+          key={`btcmap-${merchant.id}`}
+          position={[merchant.lat, merchant.lon]}
+        />
+      ))}
+    </>
+  );
+}
+
 export default function MapView({ selectedLocation, onLocationSelect }: MapViewProps) {
   const mapRef = useRef<L.Map>(null);
 
@@ -59,6 +93,7 @@ export default function MapView({ selectedLocation, onLocationSelect }: MapViewP
         selectedLocation={selectedLocation}
         onLocationSelect={onLocationSelect}
       />
+      <ExistingMerchants />
     </MapContainer>
   );
 }

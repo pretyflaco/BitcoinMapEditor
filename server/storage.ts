@@ -17,7 +17,14 @@ export class MemStorage implements IStorage {
 
   async createMerchant(merchant: InsertMerchant): Promise<Merchant> {
     const id = this.currentId++;
-    const newMerchant: Merchant = { ...merchant, id, osmId: null };
+    const newMerchant: Merchant = {
+      ...merchant,
+      id,
+      osmId: null,
+      // Convert numbers to strings for database compatibility
+      latitude: merchant.latitude.toString(),
+      longitude: merchant.longitude.toString(),
+    };
     this.merchants.set(id, newMerchant);
     return newMerchant;
   }

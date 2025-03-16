@@ -29,6 +29,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Proxy endpoint for btcmap.org API
+  app.get("/api/btcmap/merchants", async (_req, res) => {
+    try {
+      const response = await fetch("https://btcmap.org/api/v1/elements/map");
+      if (!response.ok) {
+        throw new Error(`BTCMap API error: ${response.statusText}`);
+      }
+      const data = await response.json();
+      res.json(data);
+    } catch (error) {
+      res.status(500).json({ 
+        message: "Failed to fetch merchants from BTCMap",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

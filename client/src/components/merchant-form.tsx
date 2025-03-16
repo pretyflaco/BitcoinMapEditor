@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
@@ -34,7 +34,8 @@ export default function MerchantForm({
   onLocationChange,
 }: MerchantFormProps) {
   const { toast } = useToast();
-  
+  const queryClient = useQueryClient();
+
   const form = useForm<InsertMerchant>({
     resolver: zodResolver(insertMerchantSchema),
     defaultValues: {
@@ -59,6 +60,7 @@ export default function MerchantForm({
       });
       form.reset();
       onLocationChange(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/merchants"] });
     },
     onError: (error) => {
       toast({
@@ -78,7 +80,7 @@ export default function MerchantForm({
       });
       return;
     }
-    
+
     mutation.mutate({
       ...data,
       latitude: selectedLocation.lat,
@@ -185,8 +187,8 @@ export default function MerchantForm({
           )}
         />
 
-        <Button 
-          type="submit" 
+        <Button
+          type="submit"
           className="w-full"
           disabled={mutation.isPending}
         >
