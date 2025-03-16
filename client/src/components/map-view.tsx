@@ -14,7 +14,7 @@ import { Search, Locate } from "lucide-react";
 L.Control.SearchAndLocate = L.Control.extend({
   onAdd: function(map: L.Map) {
     const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-    container.style.backgroundColor = 'white';
+    container.style.backgroundColor = 'transparent';
     container.style.padding = '5px';
 
     // Search container
@@ -38,16 +38,18 @@ L.Control.SearchAndLocate = L.Control.extend({
     searchInput.style.display = 'none';
     searchInput.style.marginLeft = '5px';
     searchInput.style.padding = '4px 8px';
-    searchInput.style.border = '1px solid #ccc';
+    searchInput.style.border = '1px solid var(--border)';
     searchInput.style.borderRadius = '4px';
     searchInput.style.width = '200px';
+    searchInput.style.backgroundColor = 'var(--background)';
+    searchInput.style.color = 'var(--foreground)';
 
     // Search results container
     const searchResults = L.DomUtil.create('div', '', container);
     searchResults.style.display = 'none';
     searchResults.style.position = 'absolute';
-    searchResults.style.backgroundColor = 'white';
-    searchResults.style.border = '1px solid #ccc';
+    searchResults.style.backgroundColor = 'var(--background)';
+    searchResults.style.border = '1px solid var(--border)';
     searchResults.style.borderRadius = '4px';
     searchResults.style.marginTop = '5px';
     searchResults.style.maxHeight = '200px';
@@ -176,18 +178,19 @@ function MapLayer() {
       const resultItem = document.createElement('div');
       resultItem.style.padding = '8px';
       resultItem.style.cursor = 'pointer';
-      resultItem.style.borderBottom = '1px solid #eee';
+      resultItem.style.borderBottom = '1px solid var(--border)';
+      resultItem.style.color = 'var(--foreground)';
       resultItem.innerHTML = `
         <div style="font-weight: bold;">${result.name}</div>
-        <div style="color: #666; font-size: 0.9em;">${result.type}</div>
+        <div style="color: var(--muted-foreground); font-size: 0.9em;">${result.type}</div>
       `;
 
       resultItem.addEventListener('mouseover', () => {
-        resultItem.style.backgroundColor = '#f5f5f5';
+        resultItem.style.backgroundColor = 'var(--accent)';
       });
 
       resultItem.addEventListener('mouseout', () => {
-        resultItem.style.backgroundColor = 'white';
+        resultItem.style.backgroundColor = 'transparent';
       });
 
       resultItem.addEventListener('click', () => {
