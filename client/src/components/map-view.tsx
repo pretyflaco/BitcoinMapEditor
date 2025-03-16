@@ -93,15 +93,27 @@ function LocationMarker({ selectedLocation, onLocationSelect }: MapViewProps) {
 }
 
 // Add custom icon definitions
-const createCustomIcon = (type: 'blink' | 'btcmap' | 'default') => L.icon({
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-  shadowSize: [41, 41],
-  className: `marker-${type}`, // Will be styled with CSS
-});
+const createCustomIcon = (type: 'blink' | 'btcmap' | 'default') => {
+  let color: string;
+  switch (type) {
+    case 'blink':
+      color = '#FB5607'; // orange
+      break;
+    case 'btcmap':
+      color = '#0891B2'; // cyan
+      break;
+    default:
+      color = '#10B981'; // green
+  }
+
+  return L.divIcon({
+    className: `custom-marker marker-${type}`,
+    html: `<div style="background-color: ${color}; width: 24px; height: 24px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+    popupAnchor: [0, -12],
+  });
+};
 
 const blinkIcon = createCustomIcon('blink');
 const btcmapIcon = createCustomIcon('btcmap');
@@ -295,7 +307,7 @@ function MerchantMarkers() {
       markersRef.set(id, marker);
     });
 
-  }, [map, localMerchants, btcMapMerchants, blinkMerchants]);
+  }, [map, localMerchants, btcMapMerchants, blinkMerchants, blinkIcon, btcmapIcon, defaultIcon]);
 
   useEffect(() => {
     if (!map) return;
@@ -317,22 +329,7 @@ function MerchantMarkers() {
   return null;
 }
 
-// Add custom marker colors to CSS
-const styleSheet = document.createElement("style");
-styleSheet.textContent = `
-.marker-blink img {
-  filter: hue-rotate(25deg) saturate(200%) brightness(1.2); /* For #FB5607 orange */
-}
-
-.marker-btcmap img {
-  filter: hue-rotate(195deg) saturate(150%) brightness(0.9); /* For #0891B2 cyan */
-}
-
-.marker-default img {
-  filter: hue-rotate(135deg) saturate(150%) brightness(0.9); /* For #10B981 green */
-}
-`;
-document.head.appendChild(styleSheet);
+// Remove the old styleSheet creation since we're using inline styles now
 
 export default function MapView({ selectedLocation, onLocationSelect }: MapViewProps) {
   return (
