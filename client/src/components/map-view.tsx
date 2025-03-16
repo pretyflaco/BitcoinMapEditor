@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { MapContainer, Marker, useMapEvents } from "react-leaflet";
+import { MapContainer, Marker, useMap, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import "maplibre-gl/dist/maplibre-gl.css";
 import L from "leaflet";
@@ -21,6 +21,28 @@ L.Icon.Default.mergeOptions({
 interface MapViewProps {
   selectedLocation: { lat: number; lng: number } | null;
   onLocationSelect: (location: { lat: number; lng: number }) => void;
+}
+
+// MapLayer component to handle MapLibre GL initialization
+function MapLayer() {
+  const map = useMap();
+
+  useEffect(() => {
+    const maplibreLayer = (L as any).maplibreGL({
+      style: 'https://tiles.openfreemap.org/styles/dark',
+      attribution: '© OpenFreeMap contributors'
+    });
+
+    map.addLayer(maplibreLayer);
+
+    return () => {
+      if (map && map.hasLayer(maplibreLayer)) {
+        map.removeLayer(maplibreLayer);
+      }
+    };
+  }, [map]);
+
+  return null;
 }
 
 function LocationMarker({
@@ -173,24 +195,6 @@ function ExistingMerchants() {
 export default function MapView({ selectedLocation, onLocationSelect }: MapViewProps) {
   const mapRef = useRef<L.Map>(null);
 
-  useEffect(() => {
-    if (mapRef.current) {
-      // Initialize MapLibre GL layer
-      const maplibreLayer = (L as any).maplibreGL({
-        style: 'https://tiles.openfreemap.org/styles/dark',
-        attribution: '© OpenFreeMap contributors'
-      });
-
-      // Add the layer to the map
-      mapRef.current.addLayer(maplibreLayer);
-
-      // Force a resize after adding the layer
-      setTimeout(() => {
-        mapRef.current?.invalidateSize();
-      }, 100);
-    }
-  }, []);
-
   return (
     <MapContainer
       ref={mapRef}
@@ -199,6 +203,7 @@ export default function MapView({ selectedLocation, onLocationSelect }: MapViewP
       style={{ height: "500px", width: "100%" }}
       className="rounded-lg"
     >
+      <MapLayer />
       <LocationMarker
         selectedLocation={selectedLocation}
         onLocationSelect={onLocationSelect}
