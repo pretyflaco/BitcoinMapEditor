@@ -10,10 +10,10 @@ import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
 import { Search, Locate } from "lucide-react";
 
-// Create custom Leaflet control for search and locate
+// Update the SearchAndLocate control to handle mobile positioning
 L.Control.SearchAndLocate = L.Control.extend({
   onAdd: function(map: L.Map) {
-    const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+    const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control mobile-controls');
     container.style.backgroundColor = 'transparent';
     container.style.padding = '5px';
 
@@ -57,8 +57,9 @@ L.Control.SearchAndLocate = L.Control.extend({
     searchResults.style.width = '250px';
     searchResults.style.zIndex = '1000';
 
-    // Locate button
-    const locateButton = L.DomUtil.create('a', '', container);
+    // Locate button in a separate container
+    const locateContainer = L.DomUtil.create('div', 'locate-container', container);
+    const locateButton = L.DomUtil.create('a', '', locateContainer);
     locateButton.href = '#';
     locateButton.title = 'Find my location';
     locateButton.style.display = 'block';
@@ -587,6 +588,7 @@ function MerchantMarkers() {
 }
 
 
+
 export default function MapView({ selectedLocation, onLocationSelect }: MapViewProps) {
   return (
     <MapContainer
@@ -594,8 +596,7 @@ export default function MapView({ selectedLocation, onLocationSelect }: MapViewP
       zoom={2}
       style={{ height: "100%", width: "100%" }}
       className="absolute inset-0"
-      zoomControl={true} // Enable default zoom controls
-      attributionControl={false}
+      zoomControl={false} // Disable default zoom controls on mobile
     >
       <MapLayer />
       <LocationMarker

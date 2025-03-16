@@ -63,6 +63,33 @@
   }
 }
 
+/* Mobile-specific map control styles */
+@media (max-width: 640px) {
+  .leaflet-control-zoom {
+    display: none !important;
+  }
+
+  .mobile-controls {
+    position: fixed !important;
+    bottom: 20px !important;
+    left: 20px !important;
+    margin: 0 !important;
+  }
+
+  .locate-container {
+    position: fixed !important;
+    bottom: 20px !important;
+    right: 20px !important;
+    left: auto !important;
+    margin: 0 !important;
+  }
+
+  /* Ensure controls appear above other elements */
+  .leaflet-control {
+    z-index: 1000 !important;
+  }
+}
+
 .custom-cluster-icon {
   background-color: hsl(var(--primary));
   border-radius: 50%;
