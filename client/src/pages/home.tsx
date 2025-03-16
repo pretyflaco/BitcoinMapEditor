@@ -8,11 +8,13 @@ import { Form, FormField, FormItem, FormLabel, FormControl } from "@/components/
 import { useForm } from "react-hook-form";
 import { insertMerchantSchema } from "@shared/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useTheme } from "@/hooks/use-theme";
 
 export default function Home() {
   const [selectedLocation, setSelectedLocation] = useState<{lat: number, lng: number} | null>(null);
   const [showLocationInput, setShowLocationInput] = useState(false);
   const [showMerchantForm, setShowMerchantForm] = useState(false);
+  const { theme } = useTheme();
 
   const locationForm = useForm({
     defaultValues: {
@@ -69,8 +71,15 @@ export default function Home() {
       {/* UI Layer */}
       <div className="absolute inset-0 pointer-events-none z-50">
         {/* Logo */}
-        <div className="absolute top-4 left-4 pointer-events-auto">
-          <img src="https://map.blink.sv/logo.svg" alt="Logo" className="h-12" />
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 pointer-events-auto">
+          <img 
+            src={theme === 'dark' 
+              ? "/attached_assets/Export_white with tagline.png"
+              : "/attached_assets/Export_full color with tag line.png"
+            } 
+            alt="Logo" 
+            className="h-16" 
+          />
         </div>
 
         {/* Add Location Button */}
