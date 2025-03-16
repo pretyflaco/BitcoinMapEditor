@@ -10,6 +10,20 @@ import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
 import { Search, Locate } from "lucide-react";
 
+// Add platform-specific navigation handler at the top of the file
+function getNavigationUrl(lat: number, lng: number): string {
+  // Check if it's iOS
+  if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+    return `maps://maps.apple.com/?daddr=${lat},${lng}&dirflg=d`;
+  }
+  // Check if it's Android
+  else if (/Android/.test(navigator.userAgent)) {
+    return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+  }
+  // Fallback for desktop/other platforms
+  return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+}
+
 // Update the SearchAndLocate control to handle mobile positioning
 L.Control.SearchAndLocate = L.Control.extend({
   onAdd: function(map: L.Map) {
@@ -476,7 +490,8 @@ function MerchantMarkers() {
                     <line x1="2" y1="10" x2="22" y2="10"/>
                   </svg>
                 </a>
-                <a href="geo:${merchant.mapInfo.coordinates.latitude},${merchant.mapInfo.coordinates.longitude}"
+                <a href="javascript:void(0)"
+                   onclick="window.location.href = '${getNavigationUrl(merchant.mapInfo.coordinates.latitude, merchant.mapInfo.coordinates.longitude)}'"
                    class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white hover:bg-gray-100">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
@@ -520,7 +535,8 @@ function MerchantMarkers() {
               ${website ? `🌐 <a href="${website}" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">${website}</a><br/>` : ''}
               ${openingHours ? `⏰ ${openingHours}<br/>` : ''}
               <div class="flex justify-center mt-2">
-                <a href="geo:${lat},${lng}"
+                <a href="javascript:void(0)"
+                   onclick="window.location.href = '${getNavigationUrl(lat, lng)}'"
                    class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white hover:bg-gray-100">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
@@ -543,7 +559,8 @@ function MerchantMarkers() {
               <em>${merchant.type}</em><br/>
               ${merchant.address}<br/>
               <div class="flex justify-center mt-2">
-                <a href="geo:${lat},${lng}"
+                <a href="javascript:void(0)"
+                   onclick="window.location.href = '${getNavigationUrl(lat, lng)}'"
                    class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white hover:bg-gray-100">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>

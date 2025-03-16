@@ -1,0 +1,49 @@
+To improve your navigation button functionality, you'll need to modify the geo URI format to ensure it works properly with navigation features, especially in Google Maps.
+
+Instead of using the basic geo URI format, you should use a more specific format that Google Maps can better interpret for navigation purposes.
+
+Here's how you can implement this:
+
+html
+Code kopieren
+
+<a href="https://www.google.com/maps/dir/?api=1&destination=41.1814653,29.523316&travelmode=driving" class="navigate-button">Navigate</a>
+This approach has several advantages:
+
+It directly opens Google Maps in navigation mode
+The "destination" parameter sets where you want to navigate to
+You can specify travel mode (driving, walking, bicycling, transit)
+It works on both mobile and desktop
+If you want to maintain the ability to choose between different map applications while improving Google Maps functionality, you can create two buttons:
+
+html
+Code kopieren
+
+<!-- Generic geo link that will offer choice of apps -->
+<a href="geo:41.1814653,29.523316" class="navigate-button">Choose Navigation App</a>
+
+<!-- Direct Google Maps navigation link -->
+<a href="https://www.google.com/maps/dir/?api=1&destination=41.1814653,29.523316" class="navigate-button">Navigate with Google Maps</a>
+For even more control, you could use JavaScript to detect the platform and offer the appropriate navigation option:
+
+javascript
+Code kopieren
+
+document.getElementById('navButton').addEventListener('click', function() {
+  const lat = 41.1814653;
+  const lng = 29.523316;
+  
+  // Check if it's iOS
+  if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+    window.location.href = `maps://maps.apple.com/?daddr=${lat},${lng}&dirflg=d`;
+  } 
+  // Check if it's Android
+  else if (/Android/.test(navigator.userAgent)) {
+    window.location.href = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+  }
+  // Fallback for other platforms
+  else {
+    window.location.href = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+  }
+});
+This solution should resolve your issue with the directions button in Google Maps by directly opening the navigation interface.
