@@ -469,12 +469,14 @@ function MerchantMarkers() {
                 <a href="https://pay.blink.sv/${merchant.username}" 
                    target="_blank" 
                    rel="noopener noreferrer" 
-                   style="background: linear-gradient(45deg, #fe9f0c, #fc5805); color: #FFFFFF !important;"
-                   class="inline-block px-3 py-1 font-bold rounded-full hover:opacity-90 text-sm">
-                  Pay this user
+                   class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white hover:bg-gray-100">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="5" width="20" height="14" rx="2"/>
+                    <line x1="2" y1="10" x2="22" y2="10"/>
+                  </svg>
                 </a>
                 <a href="geo:${merchant.mapInfo.coordinates.latitude},${merchant.mapInfo.coordinates.longitude}"
-                   class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-background hover:bg-accent">
+                   class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white hover:bg-gray-100">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
                     <circle cx="12" cy="10" r="3"/>
@@ -518,7 +520,7 @@ function MerchantMarkers() {
               ${openingHours ? `⏰ ${openingHours}<br/>` : ''}
               <div class="flex justify-center mt-2">
                 <a href="geo:${lat},${lng}"
-                   class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-background hover:bg-accent">
+                   class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white hover:bg-gray-100">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
                     <circle cx="12" cy="10" r="3"/>
@@ -541,7 +543,7 @@ function MerchantMarkers() {
               ${merchant.address}<br/>
               <div class="flex justify-center mt-2">
                 <a href="geo:${lat},${lng}"
-                   class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-background hover:bg-accent">
+                   class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white hover:bg-gray-100">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
                     <circle cx="12" cy="10" r="3"/>
@@ -550,6 +552,7 @@ function MerchantMarkers() {
               </div>
             </div>`;
           icon = defaultIcon;
+
       }
 
       const marker = L.marker([lat, lng], { icon });
