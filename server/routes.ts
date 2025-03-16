@@ -32,7 +32,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Proxy endpoint for btcmap.org API
   app.get("/api/btcmap/merchants", async (_req, res) => {
     try {
-      const response = await fetch("https://btcmap.org/api/v1/elements/map", {
+      const response = await fetch("https://btcmap.org/api/v1/merchants", {
         headers: {
           'Accept': 'application/json',
           'User-Agent': 'BTCMap-Frontend/1.0'

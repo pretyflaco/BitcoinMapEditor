@@ -56,12 +56,18 @@ function ExistingMerchants() {
       ))}
 
       {/* Show btcmap.org merchants */}
-      {btcMapMerchants.map((merchant) => (
-        <Marker
-          key={`btcmap-${merchant.id}`}
-          position={[merchant.lat, merchant.lon]}
-        />
-      ))}
+      {btcMapMerchants.map((merchant) => {
+        // Check if merchant has valid coordinates
+        if (merchant.lat && merchant.lon) {
+          return (
+            <Marker
+              key={`btcmap-${merchant.id}`}
+              position={[merchant.lat, merchant.lon]}
+            />
+          );
+        }
+        return null;
+      })}
     </>
   );
 }
