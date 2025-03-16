@@ -6,6 +6,7 @@ import L from "leaflet";
 import { useQuery } from "@tanstack/react-query";
 import type { Merchant } from "@shared/schema";
 import "@maplibre/maplibre-gl-leaflet";
+import { useTheme } from "@/hooks/use-theme";
 
 // Fix Leaflet default marker icon issue
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -23,10 +24,15 @@ interface MapViewProps {
 // MapLayer component to handle MapLibre GL initialization
 function MapLayer() {
   const map = useMap();
+  const { theme } = useTheme();
 
   useEffect(() => {
+    const style = theme === 'dark' 
+      ? 'https://tiles.openfreemap.org/styles/dark'
+      : 'https://tiles.openfreemap.org/styles/positron';
+
     const maplibreLayer = (L as any).maplibreGL({
-      style: 'https://tiles.openfreemap.org/styles/dark',
+      style,
       attribution: '© OpenFreeMap contributors'
     });
 
@@ -37,7 +43,7 @@ function MapLayer() {
         map.removeLayer(maplibreLayer);
       }
     };
-  }, [map]);
+  }, [map, theme]);
 
   return null;
 }
