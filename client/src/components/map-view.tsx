@@ -92,153 +92,242 @@ function LocationMarker({ selectedLocation, onLocationSelect }: MapViewProps) {
   ) : null;
 }
 
+// Add custom icon definitions
+const createCustomIcon = (color: string) => L.icon({
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+  shadowSize: [41, 41],
+  className: `marker-${color}`, // Will be styled with CSS
+});
+
+const blinkIcon = createCustomIcon('blink');
+const btcmapIcon = createCustomIcon('btcmap');
+const defaultIcon = createCustomIcon('default');
+
 function MerchantMarkers() {
-    const map = useMap();
-    const markersRef = new Map<string, L.Marker>();
-    const MAX_MARKERS = 100;
-    const GRID_SIZE = 5; // 5x5 grid for distribution
+  const map = useMap();
+  const markersRef = new Map<string, L.Marker>();
+  const MAX_MARKERS = 100;
+  const GRID_SIZE = 5;
 
-    // Fetch merchants data
-    const { data: localMerchants = [] } = useQuery<Merchant[]>({
-      queryKey: ["/api/merchants"],
+  // Fetch merchants data from all sources
+  const { data: localMerchants = [] } = useQuery<Merchant[]>({
+    queryKey: ["/api/merchants"],
+  });
+
+  const { data: btcMapMerchants = [] } = useQuery<any[]>({
+    queryKey: ["/api/btcmap/merchants"],
+  });
+
+  const { data: blinkMerchants = [] } = useQuery<any[]>({
+    queryKey: ["/api/blink/merchants"],
+  });
+
+  const updateVisibleMarkers = useCallback(() => {
+    if (!map) return;
+
+    const bounds = map.getBounds();
+
+    // Remove existing markers
+    markersRef.forEach((marker) => {
+      map.removeLayer(marker);
+    });
+    markersRef.clear();
+
+    // Create grid system
+    const latSpan = bounds.getNorth() - bounds.getSouth();
+    const lngSpan = bounds.getEast() - bounds.getWest();
+    const cellLatSize = latSpan / GRID_SIZE;
+    const cellLngSize = lngSpan / GRID_SIZE;
+    const grid: Array<{ 
+      merchant: any; 
+      source: 'local' | 'btcmap' | 'blink';
+      cell: string;
+    }> = [];
+
+    // Process local merchants
+    localMerchants.forEach(merchant => {
+      const lat = Number(merchant.latitude);
+      const lng = Number(merchant.longitude);
+      if (!isNaN(lat) && !isNaN(lng) && bounds.contains([lat, lng])) {
+        const cellRow = Math.floor((lat - bounds.getSouth()) / cellLatSize);
+        const cellCol = Math.floor((lng - bounds.getWest()) / cellLngSize);
+        const cell = `${cellRow}-${cellCol}`;
+        grid.push({ merchant, source: 'local', cell });
+      }
     });
 
-    const { data: btcMapMerchants = [] } = useQuery<any[]>({
-      queryKey: ["/api/btcmap/merchants"],
+    // Process BTCMap merchants
+    btcMapMerchants.forEach(merchant => {
+      if (!merchant.osm_json?.lat || !merchant.osm_json?.lon) return;
+      const lat = merchant.osm_json.lat;
+      const lng = merchant.osm_json.lon;
+      if (bounds.contains([lat, lng])) {
+        const cellRow = Math.floor((lat - bounds.getSouth()) / cellLatSize);
+        const cellCol = Math.floor((lng - bounds.getWest()) / cellLngSize);
+        const cell = `${cellRow}-${cellCol}`;
+        grid.push({ merchant, source: 'btcmap', cell });
+      }
     });
 
-    const updateVisibleMarkers = useCallback(() => {
-      if (!map) return;
+    // Process Blink merchants
+    blinkMerchants.forEach(marker => {
+      const { coordinates, title } = marker.mapInfo;
+      const lat = coordinates.latitude;
+      const lng = coordinates.longitude;
+      if (bounds.contains([lat, lng])) {
+        const cellRow = Math.floor((lat - bounds.getSouth()) / cellLatSize);
+        const cellCol = Math.floor((lng - bounds.getWest()) / cellLngSize);
+        const cell = `${cellRow}-${cellCol}`;
+        grid.push({ merchant: marker, source: 'blink', cell });
+      }
+    });
 
-      const bounds = map.getBounds();
-      const zoom = map.getZoom();
+    // Group by grid cells
+    const cellGroups = grid.reduce((acc, item) => {
+      if (!acc[item.cell]) {
+        acc[item.cell] = [];
+      }
+      acc[item.cell].push(item);
+      return acc;
+    }, {} as Record<string, typeof grid>);
 
-      // Remove all existing markers
-      markersRef.forEach((marker) => {
-        map.removeLayer(marker);
+    // Select markers evenly from cells
+    const selectedMarkers: typeof grid = [];
+    const maxPerCell = Math.ceil(MAX_MARKERS / (GRID_SIZE * GRID_SIZE));
+
+    Object.values(cellGroups).forEach(cellMarkers => {
+      // Sort markers within cell by spreading them out
+      const cellCenter = cellMarkers.reduce(
+        (acc, m) => {
+          const lat = m.source === 'blink' 
+            ? m.merchant.mapInfo.coordinates.latitude
+            : m.source === 'btcmap'
+              ? m.merchant.osm_json.lat
+              : Number(m.merchant.latitude);
+          const lng = m.source === 'blink'
+            ? m.merchant.mapInfo.coordinates.longitude
+            : m.source === 'btcmap'
+              ? m.merchant.osm_json.lon
+              : Number(m.merchant.longitude);
+          return { lat: acc.lat + lat / cellMarkers.length, lng: acc.lng + lng / cellMarkers.length };
+        },
+        { lat: 0, lng: 0 }
+      );
+
+      // Sort by distance from cell center
+      cellMarkers.sort((a, b) => {
+        const aLat = a.source === 'blink'
+          ? a.merchant.mapInfo.coordinates.latitude
+          : a.source === 'btcmap'
+            ? a.merchant.osm_json.lat
+            : Number(a.merchant.latitude);
+        const aLng = a.source === 'blink'
+          ? a.merchant.mapInfo.coordinates.longitude
+          : a.source === 'btcmap'
+            ? a.merchant.osm_json.lon
+            : Number(a.merchant.longitude);
+        const bLat = b.source === 'blink'
+          ? b.merchant.mapInfo.coordinates.latitude
+          : b.source === 'btcmap'
+            ? b.merchant.osm_json.lat
+            : Number(b.merchant.latitude);
+        const bLng = b.source === 'blink'
+          ? b.merchant.mapInfo.coordinates.longitude
+          : b.source === 'btcmap'
+            ? b.merchant.osm_json.lon
+            : Number(b.merchant.longitude);
+
+        const aDist = Math.pow(aLat - cellCenter.lat, 2) + Math.pow(aLng - cellCenter.lng, 2);
+        const bDist = Math.pow(bLat - cellCenter.lat, 2) + Math.pow(bLng - cellCenter.lng, 2);
+        return aDist - bDist;
       });
+
+      // Take evenly spaced markers
+      const step = Math.max(1, Math.floor(cellMarkers.length / maxPerCell));
+      for (let i = 0; i < cellMarkers.length && selectedMarkers.length < MAX_MARKERS; i += step) {
+        selectedMarkers.push(cellMarkers[i]);
+      }
+    });
+
+    // Create markers for selected points
+    selectedMarkers.forEach(({ merchant, source }) => {
+      let lat, lng, id, name, details, icon;
+
+      switch (source) {
+        case 'blink':
+          lat = merchant.mapInfo.coordinates.latitude;
+          lng = merchant.mapInfo.coordinates.longitude;
+          id = `blink-${merchant.username}`;
+          name = merchant.mapInfo.title;
+          details = `Username: ${merchant.username}`;
+          icon = blinkIcon;
+          break;
+
+        case 'btcmap':
+          lat = merchant.osm_json.lat;
+          lng = merchant.osm_json.lon;
+          id = merchant.id;
+          name = merchant.osm_json.tags?.name || 'Unknown Merchant';
+          details = `${merchant.osm_json.tags?.['addr:street'] || ''}<br/>
+            <em>${merchant.osm_json.tags?.tourism || merchant.osm_json.tags?.shop || 'Other'}</em>`;
+          icon = btcmapIcon;
+          break;
+
+        default:
+          lat = Number(merchant.latitude);
+          lng = Number(merchant.longitude);
+          id = `local-${merchant.id}`;
+          name = merchant.name;
+          details = `${merchant.address}<br/><em>${merchant.type}</em>`;
+          icon = defaultIcon;
+      }
+
+      const marker = L.marker([lat, lng], { icon });
+      marker.on('click', () => {
+        marker.bindPopup(`<strong>${name}</strong><br/>${details}`).openPopup();
+      });
+
+      marker.addTo(map);
+      markersRef.set(id, marker);
+    });
+
+  }, [map, localMerchants, btcMapMerchants, blinkMerchants]);
+
+  useEffect(() => {
+    if (!map) return;
+
+    const throttledUpdate = L.Util.throttle(updateVisibleMarkers, 500, { leading: true });
+    map.on('moveend', throttledUpdate);
+    map.on('zoomend', throttledUpdate);
+
+    updateVisibleMarkers();
+
+    return () => {
+      map.off('moveend', throttledUpdate);
+      map.off('zoomend', throttledUpdate);
+      markersRef.forEach(marker => map.removeLayer(marker));
       markersRef.clear();
+    };
+  }, [map, updateVisibleMarkers]);
 
-      // Create a grid system for the visible area
-      const latSpan = bounds.getNorth() - bounds.getSouth();
-      const lngSpan = bounds.getEast() - bounds.getWest();
-      const cellLatSize = latSpan / GRID_SIZE;
-      const cellLngSize = lngSpan / GRID_SIZE;
-      const grid: Array<{ merchant: any; isLocal: boolean; cell: string }> = [];
+  return null;
+}
 
-      // Process local merchants
-      localMerchants.forEach(merchant => {
-        const lat = Number(merchant.latitude);
-        const lng = Number(merchant.longitude);
-        if (!isNaN(lat) && !isNaN(lng) && bounds.contains([lat, lng])) {
-          // Calculate grid cell for this marker
-          const cellRow = Math.floor((lat - bounds.getSouth()) / cellLatSize);
-          const cellCol = Math.floor((lng - bounds.getWest()) / cellLngSize);
-          const cell = `${cellRow}-${cellCol}`;
-          grid.push({ merchant, isLocal: true, cell });
-        }
-      });
-
-      // Process BTCMap merchants
-      btcMapMerchants.forEach(merchant => {
-        if (!merchant.osm_json?.lat || !merchant.osm_json?.lon) return;
-        const lat = merchant.osm_json.lat;
-        const lng = merchant.osm_json.lon;
-        if (bounds.contains([lat, lng])) {
-          const cellRow = Math.floor((lat - bounds.getSouth()) / cellLatSize);
-          const cellCol = Math.floor((lng - bounds.getWest()) / cellLngSize);
-          const cell = `${cellRow}-${cellCol}`;
-          grid.push({ merchant, isLocal: false, cell });
-        }
-      });
-
-      // Group markers by grid cell
-      const cellGroups = grid.reduce((acc, item) => {
-        if (!acc[item.cell]) {
-          acc[item.cell] = [];
-        }
-        acc[item.cell].push(item);
-        return acc;
-      }, {} as Record<string, typeof grid>);
-
-      // Select markers evenly from cells
-      const selectedMarkers: typeof grid = [];
-      const maxPerCell = Math.ceil(MAX_MARKERS / (GRID_SIZE * GRID_SIZE));
-
-      Object.values(cellGroups).forEach(cellMarkers => {
-        // Sort markers within cell by spreading them out
-        const cellCenter = cellMarkers.reduce(
-          (acc, m) => {
-            const lat = m.isLocal ? Number(m.merchant.latitude) : m.merchant.osm_json.lat;
-            const lng = m.isLocal ? Number(m.merchant.longitude) : m.merchant.osm_json.lon;
-            return { lat: acc.lat + lat / cellMarkers.length, lng: acc.lng + lng / cellMarkers.length };
-          },
-          { lat: 0, lng: 0 }
-        );
-
-        // Sort by distance from cell center to spread markers
-        cellMarkers.sort((a, b) => {
-          const aLat = a.isLocal ? Number(a.merchant.latitude) : a.merchant.osm_json.lat;
-          const aLng = a.isLocal ? Number(a.merchant.longitude) : a.merchant.osm_json.lon;
-          const bLat = b.isLocal ? Number(b.merchant.latitude) : b.merchant.osm_json.lat;
-          const bLng = b.isLocal ? Number(b.merchant.longitude) : b.merchant.osm_json.lon;
-
-          const aDist = Math.pow(aLat - cellCenter.lat, 2) + Math.pow(aLng - cellCenter.lng, 2);
-          const bDist = Math.pow(bLat - cellCenter.lat, 2) + Math.pow(bLng - cellCenter.lng, 2);
-          return aDist - bDist;
-        });
-
-        // Take evenly spaced markers up to maxPerCell
-        const step = Math.max(1, Math.floor(cellMarkers.length / maxPerCell));
-        for (let i = 0; i < cellMarkers.length && selectedMarkers.length < MAX_MARKERS; i += step) {
-          selectedMarkers.push(cellMarkers[i]);
-        }
-      });
-
-      // Create markers for selected points
-      selectedMarkers.forEach(({ merchant, isLocal }) => {
-        const lat = isLocal ? Number(merchant.latitude) : merchant.osm_json.lat;
-        const lng = isLocal ? Number(merchant.longitude) : merchant.osm_json.lon;
-        const id = isLocal ? `local-${merchant.id}` : merchant.id;
-
-        const marker = L.marker([lat, lng]);
-        marker.on('click', () => {
-          const name = isLocal ? merchant.name : merchant.osm_json.tags?.name || 'Unknown Merchant';
-          const details = isLocal
-            ? `${merchant.address}<br/><em>${merchant.type}</em>`
-            : `${merchant.osm_json.tags?.['addr:street'] || ''}<br/>
-               <em>${merchant.osm_json.tags?.tourism || merchant.osm_json.tags?.shop || 'Other'}</em>`;
-
-          marker.bindPopup(`<strong>${name}</strong><br/>${details}`).openPopup();
-        });
-
-        marker.addTo(map);
-        markersRef.set(id, marker);
-      });
-
-    }, [map, localMerchants, btcMapMerchants]);
-
-    useEffect(() => {
-      if (!map) return;
-
-      // Throttle updates to prevent too frequent refreshes
-      const throttledUpdate = L.Util.throttle(updateVisibleMarkers, 500, { leading: true });
-      map.on('moveend', throttledUpdate);
-      map.on('zoomend', throttledUpdate);
-
-      // Initial update
-      updateVisibleMarkers();
-
-      return () => {
-        map.off('moveend', throttledUpdate);
-        map.off('zoomend', throttledUpdate);
-        markersRef.forEach(marker => map.removeLayer(marker));
-        markersRef.clear();
-      };
-    }, [map, updateVisibleMarkers]);
-
-    return null;
+// Add custom marker colors to CSS
+const styleSheet = document.createElement("style");
+styleSheet.textContent = `
+  .marker-blink {
+    filter: hue-rotate(30deg) saturate(150%);
   }
+  .marker-btcmap {
+    filter: hue-rotate(180deg) saturate(150%);
+  }
+`;
+document.head.appendChild(styleSheet);
 
 export default function MapView({ selectedLocation, onLocationSelect }: MapViewProps) {
   return (
