@@ -1,4 +1,6 @@
 import { merchants, type Merchant, type InsertMerchant } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 export interface IStorage {
   createMerchant(merchant: InsertMerchant): Promise<Merchant>;
@@ -6,36 +8,28 @@ export interface IStorage {
   getMerchants(): Promise<Merchant[]>;
 }
 
-export class MemStorage implements IStorage {
-  private merchants: Map<number, Merchant>;
-  private currentId: number;
-
-  constructor() {
-    this.merchants = new Map();
-    this.currentId = 1;
-  }
-
+export class DatabaseStorage implements IStorage {
   async createMerchant(merchant: InsertMerchant): Promise<Merchant> {
-    const id = this.currentId++;
-    const newMerchant: Merchant = {
-      ...merchant,
-      id,
-      osmId: null,
-      // Convert numbers to strings for database compatibility
-      latitude: merchant.latitude.toString(),
-      longitude: merchant.longitude.toString(),
-    };
-    this.merchants.set(id, newMerchant);
+    const [newMerchant] = await db
+      .insert(merchants)
+      .values({
+        ...merchant,
+        // Convert numbers to strings for database compatibility
+        latitude: merchant.latitude.toString(),
+        longitude: merchant.longitude.toString(),
+      })
+      .returning();
     return newMerchant;
   }
 
   async getMerchant(id: number): Promise<Merchant | undefined> {
-    return this.merchants.get(id);
+    const [merchant] = await db.select().from(merchants).where(eq(merchants.id, id));
+    return merchant;
   }
 
   async getMerchants(): Promise<Merchant[]> {
-    return Array.from(this.merchants.values());
+    return await db.select().from(merchants);
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();

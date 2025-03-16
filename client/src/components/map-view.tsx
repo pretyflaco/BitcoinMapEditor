@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { Merchant } from "@shared/schema";
 import "@maplibre/maplibre-gl-leaflet";
 import { useTheme } from "@/hooks/use-theme";
+import { useToast } from "@/hooks/use-toast";
 
 // Fix Leaflet default marker icon issue
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -25,6 +26,7 @@ interface MapViewProps {
 function MapLayer() {
   const map = useMap();
   const { theme } = useTheme();
+  const { toast } = useToast();
 
   useEffect(() => {
     const style = theme === 'dark' 
@@ -38,12 +40,31 @@ function MapLayer() {
 
     map.addLayer(maplibreLayer);
 
+    // Request user's location
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          map.flyTo([latitude, longitude], 13);
+        },
+        (error) => {
+          console.log("Geolocation error or permission denied:", error);
+          // Only show toast for explicit denials, not timeouts or other errors
+          if (error.code === error.PERMISSION_DENIED) {
+            toast({
+              description: "Location access denied. You can still use the map normally.",
+            });
+          }
+        }
+      );
+    }
+
     return () => {
       if (map && map.hasLayer(maplibreLayer)) {
         map.removeLayer(maplibreLayer);
       }
     };
-  }, [map, theme]);
+  }, [map, theme, toast]);
 
   return null;
 }
