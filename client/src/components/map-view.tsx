@@ -465,13 +465,22 @@ function MerchantMarkers() {
               />
               <strong>${merchant.mapInfo.title}</strong><br/>
               <span>@${merchant.username}</span><br/>
-              <a href="https://pay.blink.sv/${merchant.username}" 
-                 target="_blank" 
-                 rel="noopener noreferrer" 
-                 style="background: linear-gradient(45deg, #fe9f0c, #fc5805); color: #FFFFFF !important;"
-                 class="inline-block mt-2 px-3 py-1 font-bold rounded-full hover:opacity-90 text-sm">
-                Pay this user
-              </a>
+              <div class="flex justify-center gap-2 mt-2">
+                <a href="https://pay.blink.sv/${merchant.username}" 
+                   target="_blank" 
+                   rel="noopener noreferrer" 
+                   style="background: linear-gradient(45deg, #fe9f0c, #fc5805); color: #FFFFFF !important;"
+                   class="inline-block px-3 py-1 font-bold rounded-full hover:opacity-90 text-sm">
+                  Pay this user
+                </a>
+                <a href="geo:${merchant.mapInfo.coordinates.latitude},${merchant.mapInfo.coordinates.longitude}"
+                   class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-background hover:bg-accent">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
+                    <circle cx="12" cy="10" r="3"/>
+                  </svg>
+                </a>
+              </div>
             </div>`;
           icon = blinkIcon;
           break;
@@ -506,7 +515,16 @@ function MerchantMarkers() {
               ${address ? `📍 ${address}<br/>` : ''}
               ${phone ? `📞 ${phone}<br/>` : ''}
               ${website ? `🌐 <a href="${website}" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">${website}</a><br/>` : ''}
-              ${openingHours ? `⏰ ${openingHours}` : ''}
+              ${openingHours ? `⏰ ${openingHours}<br/>` : ''}
+              <div class="flex justify-center mt-2">
+                <a href="geo:${lat},${lng}"
+                   class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-background hover:bg-accent">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
+                    <circle cx="12" cy="10" r="3"/>
+                  </svg>
+                </a>
+              </div>
             </div>`;
           icon = btcmapIcon;
           break;
@@ -516,7 +534,21 @@ function MerchantMarkers() {
           lng = Number(merchant.longitude);
           id = `local-${merchant.id}`;
           name = merchant.name;
-          details = `${merchant.address}<br/><em>${merchant.type}</em>`;
+          details = `
+            <div class="text-center">
+              <strong>${merchant.name}</strong><br/>
+              <em>${merchant.type}</em><br/>
+              ${merchant.address}<br/>
+              <div class="flex justify-center mt-2">
+                <a href="geo:${lat},${lng}"
+                   class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-background hover:bg-accent">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
+                    <circle cx="12" cy="10" r="3"/>
+                  </svg>
+                </a>
+              </div>
+            </div>`;
           icon = defaultIcon;
       }
 

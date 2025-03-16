@@ -170,7 +170,7 @@ export default function Home() {
         </div>
 
         {/* Add Location Button */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 pointer-events-auto">
+        <div className="absolute bottom-16 left-1/2 -translate-x-1/2 pointer-events-auto">
           {!showLocationInput && !showMerchantForm && (
             <Button 
               onClick={handleAddLocation}
