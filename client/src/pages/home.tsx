@@ -74,8 +74,8 @@ export default function Home() {
         <div className="absolute top-4 left-1/2 -translate-x-1/2 pointer-events-auto">
           <img 
             src={theme === 'dark' 
-              ? "/attached_assets/Export_white with tagline.png"
-              : "/attached_assets/Export_full color with tag line.png"
+              ? "/attached_assets/darkmode.png"
+              : "/attached_assets/lightmode.png"
             } 
             alt="Logo" 
             className="h-16" 
