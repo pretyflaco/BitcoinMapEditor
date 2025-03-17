@@ -142,61 +142,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/bitcoinpeople/merchants", async (_req, res) => {
-    try {
-      console.log('Fetching Bitcoin People merchants...');
-      const response = await fetch(
-        'https://maps.googleapis.com/maps/api/place/js/PlaceService.GetPlaceDetails?2sen&6e13&10e3&12sTR&14m1&1sChIJz-aftGgcOBMRT57kFIWVQ3U&17m1&2e1&r_url=https%3A%2F%2Fwww.google.com%2Fmaps%2Fd%2Fembed&callback=_xdc_._tikavl&client=google-maps-pro&token=58636',
-        {
-          headers: {
-            'Accept': '*/*',
-            'User-Agent': 'Mozilla/5.0',
-            'Referer': 'https://www.google.com/'
-          }
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch Bitcoin People merchants');
-      }
-
-      // Get the response text since it's JSONP
-      const text = await response.text();
-
-      // Extract the JSON from the JSONP callback
-      const jsonStart = text.indexOf('{');
-      const jsonEnd = text.lastIndexOf('}') + 1;
-      const jsonStr = text.substring(jsonStart, jsonEnd);
-
-      // Parse the JSON
-      const data = JSON.parse(jsonStr);
-
-      // Transform the data into our format
-      const merchants = {
-        locations: data.result?.reviews?.map((review: any) => ({
-          id: review.time,
-          name: review.author_name,
-          coordinates: {
-            latitude: review.location?.lat,
-            longitude: review.location?.lng
-          },
-          description: review.text,
-          website: review.author_url,
-          categories: []
-        })) || []
-      };
-
-      console.log('Bitcoin People API Response:', JSON.stringify(merchants, null, 2));
-      res.json(merchants);
-    } catch (error) {
-      console.error('Bitcoin People API error:', error);
-      res.status(500).json({ 
-        message: "Failed to fetch merchants from Bitcoin People",
-        error: error instanceof Error ? error.message : "Unknown error"
-      });
-    }
-  });
-
   app.get("/api/bitcoinjungle/introspection", async (_req, res) => {
     try {
       console.log('Querying Bitcoin Jungle API Schema...');
