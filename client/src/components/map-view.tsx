@@ -571,7 +571,7 @@ function MerchantMarkers() {
               details = `
                 <div class="text-center min-w-[280px]">
                   <img
-                    src="https://static.wixstatic.com/media/6975be_4dce3094433147fd85f76f8cf9636b13~mv2.png/v1/fill/w_184,h_186,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/bitcoin-jungle-logo-512.png" 
+                    src="./attached_assets/bitcoinjungle.png" 
                     alt="Bitcoin Jungle Logo"
                     class="w-12 h-12 mx-auto mb-2 object-contain"
                   />
@@ -609,7 +609,7 @@ function MerchantMarkers() {
               details = `
                 <div class="text-center min-w-[280px]">
                   <img
-                    src="https://cdn.prod.website-files.com/6720ed07d56bdfa402a08023/6720ed07d56bdfa402a081b7_blink-icon-p-500.png"
+                    src="./attached_assets/blink.png"
                     alt="Blink Logo"
                     class="w-12 h-12 mx-auto mb-2 object-contain"
                   />
@@ -711,7 +711,7 @@ function MerchantMarkers() {
                       </svg>
                     </a>
                   </div>
-                </div`;
+                </div>`;
               icon = btcmapIcon;
               break;
 
@@ -723,7 +723,7 @@ function MerchantMarkers() {
               details = `
                 <div class="text-center">
                   <strong>${merchant.name}</strong><br/>
-                  <em>${merchant.type}</em><br/>
+                  <em>${merchant.type}em><br/>
                   ${merchant.address}<br/>
                   <div class="flex justify-center mt-2">
                     <a href="javascript:void(0)"
