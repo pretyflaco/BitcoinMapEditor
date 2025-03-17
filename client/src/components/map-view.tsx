@@ -508,6 +508,12 @@ function MerchantMarkers() {
               const website = tags.website || tags['contact:website'];
               const openingHours = tags['opening_hours'];
               const lastSurveyed = tags['survey:date'] || null;
+              const paymentMethods = {
+                bitcoin: tags['payment:bitcoin'],
+                lightning: tags['payment:lightning'],
+                contactless: tags['payment:contactless']
+              };
+
               details = `
                 <div class="text-center">
                   <img 
@@ -522,7 +528,24 @@ function MerchantMarkers() {
                   ${website ? `🌐 <a href="${website}" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">${website}</a><br/>` : ''}
                   ${openingHours ? `⏰ ${openingHours}<br/>` : ''}
                   ${lastSurveyed ? `📅 Last surveyed: ${lastSurveyed}<br/>` : ''}
-                  <div class="flex justify-center mt-2">
+                  <div class="flex justify-between items-center mt-2">
+                    <div class="flex gap-2">
+                      <img 
+                        src="https://btcmap.org/icons/${paymentMethods.bitcoin === 'yes' ? 'btc-primary' : 'btc'}.svg"
+                        alt="Bitcoin payments"
+                        class="w-6 h-6"
+                      />
+                      <img 
+                        src="https://btcmap.org/icons/${paymentMethods.lightning === 'yes' ? 'ln-primary' : 'ln-no'}.svg"
+                        alt="Lightning payments"
+                        class="w-6 h-6"
+                      />
+                      <img 
+                        src="https://btcmap.org/icons/${paymentMethods.contactless === 'yes' ? 'nfc-primary' : 'nfc'}.svg"
+                        alt="Contactless payments"
+                        class="w-6 h-6"
+                      />
+                    </div>
                     <a href="javascript:void(0)"
                        onclick="window.location.href = '${getNavigationUrl(lat, lng)}'"
                        class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white hover:bg-gray-100">
