@@ -108,18 +108,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/bitcoinjungle/merchants", async (_req, res) => {
     try {
-      // First get the token
-      const tokenResponse = await fetch('https://maps.bitcoinjungle.app/api/token');
-      if (!tokenResponse.ok) {
-        throw new Error('Failed to fetch token');
-      }
-      const { token } = await tokenResponse.json();
+      console.log('Fetching Bitcoin Jungle merchants from /api/list endpoint...');
 
-      // Now use the token to fetch merchants
-      const response = await fetch('https://maps.bitcoinjungle.app/api/merchants', {
+      const response = await fetch('https://maps.bitcoinjungle.app/api/list', {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
         }
       });
 
@@ -139,8 +133,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Bitcoin Jungle API error details:', {
         error,
-        stack: error instanceof Error ? error.stack : undefined,
-        url: BITCOIN_JUNGLE_API
+        stack: error instanceof Error ? error.stack : undefined
       });
       res.status(500).json({ 
         message: "Failed to fetch merchants from Bitcoin Jungle",
@@ -149,7 +142,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add introspection endpoint to examine the API schema
   app.get("/api/bitcoinjungle/introspection", async (_req, res) => {
     try {
       console.log('Querying Bitcoin Jungle API Schema...');
