@@ -204,7 +204,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(data.getAllBusinesses);
     } catch (error) {
-      console.error('Bitcoin Jungle API error:', error);
+      console.error('Bitcoin Jungle API error details:', {
+        error,
+        stack: error instanceof Error ? error.stack : undefined,
+        url: BITCOIN_JUNGLE_API,
+        query: query.toString()
+      });
       res.status(500).json({ 
         message: "Failed to fetch merchants from Bitcoin Jungle",
         error: error instanceof Error ? error.message : "Unknown error"
