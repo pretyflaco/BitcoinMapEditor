@@ -727,8 +727,8 @@ function MerchantMarkers() {
               lat = merchant.osm_json.lat;
               lng = merchant.osm_json.lon;
               id = `btcmap-${merchant.id}`;
-              name = merchant.osmjson.tags?.name || 'Unknown Merchant';
-              const tags = merchant.osm_json.tags || {};
+              name = merchant.osm_json?.tags?.name || 'Unknown Merchant';
+              const tags = merchant.osm_json?.tags || {};
               const address = [
                 tags['addr:street'],
                 tags['addr:housenumber'],
