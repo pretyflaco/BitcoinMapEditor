@@ -571,7 +571,7 @@ function MerchantMarkers() {
               details = `
                 <div class="text-center min-w-[280px]">
                   <img
-                    src="./attached_assets/bitcoinjungle.png" 
+                    src="/assets/bitcoinjungle.png" 
                     alt="Bitcoin Jungle Logo"
                     class="w-12 h-12 mx-auto mb-2 object-contain"
                   />
@@ -609,7 +609,7 @@ function MerchantMarkers() {
               details = `
                 <div class="text-center min-w-[280px]">
                   <img
-                    src="./attached_assets/blink.png"
+                    src="/assets/blink.png"
                     alt="Blink Logo"
                     class="w-12 h-12 mx-auto mb-2 object-contain"
                   />
@@ -728,7 +728,7 @@ function MerchantMarkers() {
                   <div class="flex justify-center mt-2">
                     <a href="javascript:void(0)"
                        onclick="window.location.href = '${getNavigationUrl(lat, lng)}'"
-                       class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white hover:bg-gray-100">
+                       class="inline-flex items-center justify-center w-8 h-8 roundedfull bg-white hover:bg-gray-100">
                       <svg width="16" height="16"viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 1 1 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
                         <circle cx="12" cy="10" r="3"/>
                       </svg>
@@ -775,6 +775,7 @@ function MerchantMarkers() {
 
   return null;
 }
+
 
 
 export default function MapView({ selectedLocation, onLocationSelect }: MapViewProps) {
