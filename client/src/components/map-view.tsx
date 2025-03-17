@@ -507,7 +507,7 @@ function MerchantMarkers() {
               const phone = tags.phone || tags['contact:phone'];
               const website = tags.website || tags['contact:website'];
               const openingHours = tags['opening_hours'];
-              const lastSurveyed = merchant.check_date ? new Date(merchant.check_date).toISOString().split('T')[0] : null;
+              const lastSurveyed = tags['survey:date'] || null;
               details = `
                 <div class="text-center">
                   <img 
@@ -594,6 +594,7 @@ function MerchantMarkers() {
 
   return null;
 }
+
 
 
 export default function MapView({ selectedLocation, onLocationSelect }: MapViewProps) {
