@@ -328,7 +328,7 @@ function MerchantMarkers() {
   const map = useMap();
   const { theme } = useTheme();
   const markersRef = new Map<string, L.Marker>();
-  const MAX_MARKERS = 100;
+  const MAX_NEW_MARKERS = 100; // Maximum number of new markers to add at once
   const GRID_SIZE = 5;
 
   // Fetch merchants data from all sources
@@ -348,12 +348,6 @@ function MerchantMarkers() {
     if (!map) return;
 
     const bounds = map.getBounds();
-
-    // Remove existing markers
-    markersRef.forEach((marker) => {
-      map.removeLayer(marker);
-    });
-    markersRef.clear();
 
     // Create grid system
     const latSpan = bounds.getNorth() - bounds.getSouth();
@@ -404,8 +398,24 @@ function MerchantMarkers() {
       }
     });
 
-    // Group by grid cells and data source
-    const cellGroups = grid.reduce((acc, item) => {
+    // Find new markers that aren't already on the map
+    const newMarkers = grid.filter(item => {
+      let id: string;
+      switch (item.source) {
+        case 'blink':
+          id = `blink-${item.merchant.username}`;
+          break;
+        case 'btcmap':
+          id = `btcmap-${item.merchant.id}`;
+          break;
+        default:
+          id = `local-${item.merchant.id}`;
+      }
+      return !markersRef.has(id);
+    });
+
+    // Group new markers by cell
+    const newMarkersGroups = newMarkers.reduce((acc, item) => {
       if (!acc[item.cell]) {
         acc[item.cell] = {
           blink: [],
@@ -417,169 +427,144 @@ function MerchantMarkers() {
       return acc;
     }, {} as Record<string, Record<'blink' | 'btcmap' | 'local', typeof grid>>);
 
-    // Select markers evenly from cells and sources
-    const selectedMarkers: typeof grid = [];
-    const maxPerSource = Math.floor(MAX_MARKERS / 3); // Distribute evenly among sources
+    // Add new markers up to the limit
+    let addedCount = 0;
+    const maxPerSource = Math.floor(MAX_NEW_MARKERS / 3);
     const maxPerCellPerSource = Math.ceil(maxPerSource / (GRID_SIZE * GRID_SIZE));
 
-    Object.values(cellGroups).forEach(cellSources => {
-      // For each cell, take an equal number from each source
+    Object.values(newMarkersGroups).forEach(cellSources => {
+      if (addedCount >= MAX_NEW_MARKERS) return;
+
       ['blink', 'btcmap', 'local'].forEach(source => {
+        if (addedCount >= MAX_NEW_MARKERS) return;
+
         const markers = cellSources[source as 'blink' | 'btcmap' | 'local'];
         if (markers.length === 0) return;
 
-        // Sort by distance from cell center for better distribution
-        const cellCenter = markers.reduce(
-          (acc, m) => {
-            const lat = m.source === 'blink'
-              ? m.merchant.mapInfo.coordinates.latitude
-              : m.source === 'btcmap'
-                ? m.merchant.osm_json.lat
-                : Number(m.merchant.latitude);
-            const lng = m.source === 'blink'
-              ? m.merchant.mapInfo.coordinates.longitude
-              : m.source === 'btcmap'
-                ? m.merchant.osm_json.lon
-                : Number(m.merchant.longitude);
-            return { lat: acc.lat + lat / markers.length, lng: acc.lng + lng / markers.length };
-          },
-          { lat: 0, lng: 0 }
-        );
-
-        // Take evenly spaced markers
-        const sourceCount = selectedMarkers.filter(m => m.source === source).length;
-        if (sourceCount >= maxPerSource) return;
-
-        const available = maxPerSource - sourceCount;
-        const take = Math.min(maxPerCellPerSource, available, markers.length);
+        const take = Math.min(maxPerCellPerSource, MAX_NEW_MARKERS - addedCount, markers.length);
         const step = Math.max(1, Math.floor(markers.length / take));
 
-        for (let i = 0; i < markers.length && selectedMarkers.length < MAX_MARKERS; i += step) {
-          if (selectedMarkers.filter(m => m.source === source).length >= maxPerSource) break;
-          selectedMarkers.push(markers[i]);
+        for (let i = 0; i < markers.length && addedCount < MAX_NEW_MARKERS; i += step) {
+          const { merchant, source } = markers[i];
+          let lat, lng, id, name, details, icon;
+
+          switch (source) {
+            case 'blink':
+              lat = merchant.mapInfo.coordinates.latitude;
+              lng = merchant.mapInfo.coordinates.longitude;
+              id = `blink-${merchant.username}`;
+              name = merchant.mapInfo.title;
+              details = `
+                <div class="text-center">
+                  <img 
+                    src="https://cdn.prod.website-files.com/6720ed07d56bdfa402a08023/6720ed07d56bdfa402a081b7_blink-icon-p-500.png"
+                    alt="Blink Logo" 
+                    class="w-12 h-12 mx-auto mb-2 object-contain"
+                  />
+                  <strong>${merchant.mapInfo.title}</strong><br/>
+                  <span>@${merchant.username}</span><br/>
+                  <div class="flex justify-center gap-2 mt-2">
+                    <a href="https://pay.blink.sv/${merchant.username}" 
+                       target="_blank" 
+                       rel="noopener noreferrer" 
+                       class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white hover:bg-gray-100">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="5" width="20" height="14" rx="2"/>
+                        <line x1="2" y1="10" x2="22" y2="10"/>
+                      </svg>
+                    </a>
+                    <a href="javascript:void(0)"
+                       onclick="window.location.href = '${getNavigationUrl(lat, lng)}'"
+                       class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white hover:bg-gray-100">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
+                        <circle cx="12" cy="10" r="3"/>
+                      </svg>
+                    </a>
+                  </div>
+                </div>`;
+              icon = blinkIcon;
+              break;
+
+            case 'btcmap':
+              lat = merchant.osm_json.lat;
+              lng = merchant.osm_json.lon;
+              id = `btcmap-${merchant.id}`;
+              name = merchant.osm_json.tags?.name || 'Unknown Merchant';
+              const tags = merchant.osm_json.tags || {};
+              const address = [
+                tags['addr:street'],
+                tags['addr:housenumber'],
+                tags['addr:city'],
+                tags['addr:country']
+              ].filter(Boolean).join(', ');
+              const type = tags.amenity || tags.shop || tags.tourism || tags.leisure || 'Other';
+              const phone = tags.phone || tags['contact:phone'];
+              const website = tags.website || tags['contact:website'];
+              const openingHours = tags['opening_hours'];
+              details = `
+                <div class="text-center">
+                  <img 
+                    src="https://btcmap.org/images/logo.svg" 
+                    alt="BTCMap Logo" 
+                    class="w-12 h-12 mx-auto mb-2 object-contain"
+                  />
+                  <strong>${name}</strong><br/>
+                  <em>${type}</em><br/>
+                  ${address ? `📍 ${address}<br/>` : ''}
+                  ${phone ? `📞 ${phone}<br/>` : ''}
+                  ${website ? `🌐 <a href="${website}" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">${website}</a><br/>` : ''}
+                  ${openingHours ? `⏰ ${openingHours}<br/>` : ''}
+                  <div class="flex justify-center mt-2">
+                    <a href="javascript:void(0)"
+                       onclick="window.location.href = '${getNavigationUrl(lat, lng)}'"
+                       class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white hover:bg-gray-100">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
+                        <circle cx="12" cy="10" r="3"/>
+                      </svg>
+                    </a>
+                  </div>
+                </div>`;
+              icon = btcmapIcon;
+              break;
+
+            default:
+              lat = Number(merchant.latitude);
+              lng = Number(merchant.longitude);
+              id = `local-${merchant.id}`;
+              name = merchant.name;
+              details = `
+                <div class="text-center">
+                  <strong>${merchant.name}</strong><br/>
+                  <em>${merchant.type}</em><br/>
+                  ${merchant.address}<br/>
+                  <div class="flex justify-center mt-2">
+                    <a href="javascript:void(0)"
+                       onclick="window.location.href = '${getNavigationUrl(lat, lng)}'"
+                       class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white hover:bg-gray-100">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
+                        <circle cx="12" cy="10" r="3"/>
+                      </svg>
+                    </a>
+                  </div>
+                </div>`;
+              icon = defaultIcon;
+          }
+
+          if (!markersRef.has(id)) {
+            const marker = L.marker([lat, lng], { icon });
+            marker.on('click', () => {
+              marker.bindPopup(details).openPopup();
+            });
+
+            marker.addTo(map);
+            markersRef.set(id, marker);
+            addedCount++;
+          }
         }
       });
-    });
-
-    // Create markers for selected points
-    selectedMarkers.forEach(({ merchant, source }) => {
-      let lat, lng, id, name, details, icon;
-
-      switch (source) {
-        case 'blink':
-          lat = merchant.mapInfo.coordinates.latitude;
-          lng = merchant.mapInfo.coordinates.longitude;
-          id = `blink-${merchant.username}`;
-          name = merchant.mapInfo.title;
-          details = `
-            <div class="text-center">
-              <img 
-                src="https://cdn.prod.website-files.com/6720ed07d56bdfa402a08023/6720ed07d56bdfa402a081b7_blink-icon-p-500.png"
-                alt="Blink Logo" 
-                class="w-12 h-12 mx-auto mb-2 object-contain"
-              />
-              <strong>${merchant.mapInfo.title}</strong><br/>
-              <span>@${merchant.username}</span><br/>
-              <div class="flex justify-center gap-2 mt-2">
-                <a href="https://pay.blink.sv/${merchant.username}" 
-                   target="_blank" 
-                   rel="noopener noreferrer" 
-                   class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white hover:bg-gray-100">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="2" y="5" width="20" height="14" rx="2"/>
-                    <line x1="2" y1="10" x2="22" y2="10"/>
-                  </svg>
-                </a>
-                <a href="javascript:void(0)"
-                   onclick="window.location.href = '${getNavigationUrl(merchant.mapInfo.coordinates.latitude, merchant.mapInfo.coordinates.longitude)}'"
-                   class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white hover:bg-gray-100">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
-                    <circle cx="12" cy="10" r="3"/>
-                  </svg>
-                </a>
-              </div>
-            </div>`;
-          icon = blinkIcon;
-          break;
-
-        case 'btcmap':
-          lat = merchant.osm_json.lat;
-          lng = merchant.osm_json.lon;
-          id = merchant.id;
-          name = merchant.osm_json.tags?.name || 'Unknown Merchant';
-          const tags = merchant.osm_json.tags || {};
-          const address = [
-            tags['addr:street'],
-            tags['addr:housenumber'],
-            tags['addr:city'],
-            tags['addr:country']
-          ].filter(Boolean).join(', ');
-
-          const type = tags.amenity || tags.shop || tags.tourism || tags.leisure || 'Other';
-          const phone = tags.phone || tags['contact:phone'];
-          const website = tags.website || tags['contact:website'];
-          const openingHours = tags['opening_hours'];
-
-          details = `
-            <div class="text-center">
-              <img 
-                src="https://btcmap.org/images/logo.svg" 
-                alt="BTCMap Logo" 
-                class="w-12 h-12 mx-auto mb-2 object-contain"
-              />
-              <strong>${name}</strong><br/>
-              <em>${type}</em><br/>
-              ${address ? `📍 ${address}<br/>` : ''}
-              ${phone ? `📞 ${phone}<br/>` : ''}
-              ${website ? `🌐 <a href="${website}" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">${website}</a><br/>` : ''}
-              ${openingHours ? `⏰ ${openingHours}<br/>` : ''}
-              <div class="flex justify-center mt-2">
-                <a href="javascript:void(0)"
-                   onclick="window.location.href = '${getNavigationUrl(lat, lng)}'"
-                   class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white hover:bg-gray-100">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
-                    <circle cx="12" cy="10" r="3"/>
-                  </svg>
-                </a>
-              </div>
-            </div>`;
-          icon = btcmapIcon;
-          break;
-
-        default:
-          lat = Number(merchant.latitude);
-          lng = Number(merchant.longitude);
-          id = `local-${merchant.id}`;
-          name = merchant.name;
-          details = `
-            <div class="text-center">
-              <strong>${merchant.name}</strong><br/>
-              <em>${merchant.type}</em><br/>
-              ${merchant.address}<br/>
-              <div class="flex justify-center mt-2">
-                <a href="javascript:void(0)"
-                   onclick="window.location.href = '${getNavigationUrl(lat, lng)}'"
-                   class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white hover:bg-gray-100">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
-                    <circle cx="12" cy="10" r="3"/>
-                  </svg>
-                </a>
-              </div>
-            </div>`;
-          icon = defaultIcon;
-
-      }
-
-      const marker = L.marker([lat, lng], { icon });
-      marker.on('click', () => {
-        marker.bindPopup(`<div>${details}</div>`).openPopup();
-      });
-
-      marker.addTo(map);
-      markersRef.set(id, marker);
     });
 
   }, [map, localMerchants, btcMapMerchants, blinkMerchants, blinkIcon, btcmapIcon, defaultIcon, theme]);
@@ -596,8 +581,7 @@ function MerchantMarkers() {
     return () => {
       map.off('moveend', throttledUpdate);
       map.off('zoomend', throttledUpdate);
-      markersRef.forEach(marker => map.removeLayer(marker));
-      markersRef.clear();
+      // Note: We don't clear markers on unmount anymore
     };
   }, [map, updateVisibleMarkers]);
 
