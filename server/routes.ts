@@ -6,6 +6,7 @@ import { fromZodError } from "zod-validation-error";
 import { request, gql } from 'graphql-request';
 
 const BLINK_API = 'https://api.blink.sv/graphql';
+const BITCOIN_JUNGLE_API = 'https://api.mainnet.bitcoinjungle.app/graphql';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/merchants", async (req, res) => {
@@ -139,7 +140,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       `;
 
       const data = await request(
-        'https://api.mainnet.bitcoinjungle.app/graphql',
+        BITCOIN_JUNGLE_API,
         query,
         {},
         {
@@ -186,7 +187,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       `;
 
       const data = await request(
-        'https://api.mainnet.bitcoinjungle.app/graphql',
+        BITCOIN_JUNGLE_API,
         query,
         {},
         {
