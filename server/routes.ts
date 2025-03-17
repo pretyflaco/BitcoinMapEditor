@@ -140,8 +140,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Bitcoin Jungle API error details:', {
         error,
         stack: error instanceof Error ? error.stack : undefined,
-        url: BITCOIN_JUNGLE_API,
-        query: bitcoinJungleQuery.toString()
+        url: BITCOIN_JUNGLE_API
       });
       res.status(500).json({ 
         message: "Failed to fetch merchants from Bitcoin Jungle",
