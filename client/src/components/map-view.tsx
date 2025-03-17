@@ -333,8 +333,48 @@ function MerchantMarkers() {
   const map = useMap();
   const { theme } = useTheme();
   const markersRef = new Map<string, L.Marker>();
-  const MAX_NEW_MARKERS = 100; // Maximum number of new markers to add at once
+  const MAX_NEW_MARKERS = 70; // Reduced from 100 to 70
+  const MAX_TOTAL_MARKERS = 300; // Maximum total markers to show
   const GRID_SIZE = 5;
+
+  // Helper function to calculate distance from viewport center
+  const getDistanceFromViewport = (lat: number, lng: number) => {
+    const bounds = map.getBounds();
+    const center = bounds.getCenter();
+    return Math.sqrt(
+      Math.pow(center.lat - lat, 2) +
+      Math.pow(center.lng - lng, 2)
+    );
+  };
+
+  // Helper function to remove distant markers
+  const removeDistantMarkers = () => {
+    if (markersRef.size <= MAX_TOTAL_MARKERS) return;
+
+    const bounds = map.getBounds();
+    const center = bounds.getCenter();
+
+    // Create array of markers with their distances
+    const markersWithDistance = Array.from(markersRef.entries()).map(([id, marker]) => {
+      const pos = marker.getLatLng();
+      return {
+        id,
+        marker,
+        distance: getDistanceFromViewport(pos.lat, pos.lng)
+      };
+    });
+
+    // Sort by distance (farthest first)
+    markersWithDistance.sort((a, b) => b.distance - a.distance);
+
+    // Remove markers until we're under the limit
+    const markersToRemove = markersWithDistance.slice(0, markersWithDistance.length - MAX_TOTAL_MARKERS);
+    markersToRemove.forEach(({ id, marker }) => {
+      map.removeLayer(marker);
+      markersRef.delete(id);
+    });
+  };
+
 
   // Fetch merchants data from all sources
   const { data: localMerchants = [] } = useQuery<Merchant[]>({
@@ -461,25 +501,25 @@ function MerchantMarkers() {
               name = merchant.mapInfo.title;
               details = `
                 <div class="text-center min-w-[280px]">
-                  <img 
+                  <img
                     src="https://cdn.prod.website-files.com/6720ed07d56bdfa402a08023/6720ed07d56bdfa402a081b7_blink-icon-p-500.png"
-                    alt="Blink Logo" 
+                    alt="Blink Logo"
                     class="w-12 h-12 mx-auto mb-2 object-contain"
                   />
                   <strong>${merchant.mapInfo.title}</strong><br/>
                   <span>@${merchant.username}</span><br/>
                   <div class="flex justify-between items-center mt-2">
                     <div class="flex gap-2">
-                      <img 
+                      <img
                         src="https://btcmap.org/icons/ln-primary.svg"
                         alt="Lightning Network enabled"
                         class="w-6 h-6"
                       />
                     </div>
                     <div class="flex gap-2">
-                      <a href="https://pay.blink.sv/${merchant.username}" 
-                         target="_blank" 
-                         rel="noopener noreferrer" 
+                      <a href="https://pay.blink.sv/${merchant.username}"
+                         target="_blank"
+                         rel="noopener noreferrer"
                          class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white hover:bg-gray-100">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                           <rect x="2" y="5" width="20" height="14" rx="2"/>
@@ -525,9 +565,9 @@ function MerchantMarkers() {
 
               details = `
                 <div class="text-center min-w-[280px]">
-                  <img 
-                    src="https://btcmap.org/images/logo.svg" 
-                    alt="BTCMap Logo" 
+                  <img
+                    src="https://btcmap.org/images/logo.svg"
+                    alt="BTCMap Logo"
                     class="w-12 h-12 mx-auto mb-2 object-contain"
                   />
                   <strong>${name}</strong><br/>
@@ -539,17 +579,17 @@ function MerchantMarkers() {
                   ${lastSurveyed ? `📅 Last surveyed: ${lastSurveyed}<br/>` : ''}
                   <div class="flex justify-between items-center mt-2">
                     <div class="flex gap-2">
-                      <img 
+                      <img
                         src="https://btcmap.org/icons/${paymentMethods.bitcoin === 'yes' ? 'btc-primary' : 'btc'}.svg"
                         alt="Bitcoin payments"
                         class="w-6 h-6"
                       />
-                      <img 
+                      <img
                         src="https://btcmap.org/icons/${paymentMethods.lightning === 'yes' ? 'ln-primary' : 'ln-no'}.svg"
                         alt="Lightning payments"
                         class="w-6 h-6"
                       />
-                      <img 
+                      <img
                         src="https://btcmap.org/icons/${paymentMethods.contactless === 'yes' ? 'nfc-primary' : 'nfc-no'}.svg"
                         alt="Contactless payments"
                         class="w-6 h-6"
@@ -606,7 +646,10 @@ function MerchantMarkers() {
       });
     });
 
-  }, [map, localMerchants, btcMapMerchants, blinkMerchants, blinkIcon, btcmapIcon, defaultIcon, theme]);
+    // After adding new markers, check if we need to remove distant ones
+    removeDistantMarkers();
+
+  }, [map, localMerchants, btcMapMerchants, blinkMerchants, blinkIcon, btcmapIcon, defaultIcon, theme, removeDistantMarkers]);
 
   useEffect(() => {
     if (!map) return;
