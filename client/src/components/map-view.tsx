@@ -227,7 +227,10 @@ function MapLayer() {
       attribution: '© OpenFreeMap contributors'
     });
 
-    map.addLayer(maplibreLayer);
+    // Only add the layer if it doesn't exist
+    if (!map.hasLayer(maplibreLayer)) {
+      map.addLayer(maplibreLayer);
+    }
 
     // Add custom controls
     const searchAndLocateControl = new (L.Control as any).SearchAndLocate({
@@ -255,11 +258,26 @@ function MapLayer() {
       });
     });
 
+    // Clean up function
     return () => {
-      if (map && map.hasLayer(maplibreLayer)) {
-        map.removeLayer(maplibreLayer);
+      // Only try to remove if map and layer exist
+      if (map && maplibreLayer) {
+        try {
+          if (map.hasLayer(maplibreLayer)) {
+            map.removeLayer(maplibreLayer);
+          }
+        } catch (error) {
+          console.warn('Error removing maplibre layer:', error);
+        }
       }
-      map.removeControl(searchAndLocateControl);
+      // Only remove control if it exists
+      if (map && searchAndLocateControl) {
+        try {
+          map.removeControl(searchAndLocateControl);
+        } catch (error) {
+          console.warn('Error removing search control:', error);
+        }
+      }
     };
   }, [map, theme, toast, handleSearch]);
 
@@ -553,7 +571,10 @@ function MerchantMarkers() {
               details = `
                 <div class="text-center min-w-[280px]">
                   <img
-                    src="https://cdn.prod.website-files.com/6720ed07d56bdfa402a08023/6720ed07d56bdfa402a081cc_logo%2520white%2520tagline-p-500.png"
+                    src="${theme === 'dark' 
+                      ? "https://cdn.prod.website-files.com/6720ed07d56bdfa402a08023/6720ed07d56bdfa402a081cc_logo%2520white%2520tagline-p-500.png"
+                      : "https://cdn.prod.website-files.com/6720ed07d56bdfa402a08023/6720ed07d56bdfa402a081b1_full%2520color%2520with%2520tag%2520line-p-500.png"
+                    }" 
                     alt="Bitcoin Jungle Logo"
                     class="w-12 h-12 mx-auto mb-2 object-contain"
                   />
@@ -757,7 +778,6 @@ function MerchantMarkers() {
 
   return null;
 }
-
 
 
 export default function MapView({ selectedLocation, onLocationSelect }: MapViewProps) {
