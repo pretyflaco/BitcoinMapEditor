@@ -515,7 +515,7 @@ function MerchantMarkers() {
               };
 
               details = `
-                <div class="text-center">
+                <div class="text-center min-w-[280px]">
                   <img 
                     src="https://btcmap.org/images/logo.svg" 
                     alt="BTCMap Logo" 
