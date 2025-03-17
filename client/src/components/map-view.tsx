@@ -571,10 +571,7 @@ function MerchantMarkers() {
               details = `
                 <div class="text-center min-w-[280px]">
                   <img
-                    src="${theme === 'dark' 
-                      ? "https://cdn.prod.website-files.com/6720ed07d56bdfa402a08023/6720ed07d56bdfa402a081cc_logo%2520white%2520tagline-p-500.png"
-                      : "https://cdn.prod.website-files.com/6720ed07d56bdfa402a08023/6720ed07d56bdfa402a081b1_full%2520color%2520with%2520tag%2520line-p-500.png"
-                    }" 
+                    src="https://static.wixstatic.com/media/6975be_4dce3094433147fd85f76f8cf9636b13~mv2.png/v1/fill/w_184,h_186,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/bitcoin-jungle-logo-512.png" 
                     alt="Bitcoin Jungle Logo"
                     class="w-12 h-12 mx-auto mb-2 object-contain"
                   />
