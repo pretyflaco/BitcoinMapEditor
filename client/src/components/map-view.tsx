@@ -396,6 +396,7 @@ function MerchantMarkers() {
 
   const { data: bitcoinJungleMerchants = [] } = useQuery<any[]>({
     queryKey: ["/api/bitcoinjungle/merchants"],
+    enabled: true // Explicitly enable the query
   });
 
   const updateVisibleMarkers = useCallback(() => {
@@ -693,7 +694,7 @@ function MerchantMarkers() {
                         <circle cx="12" cy="10" r="3"/>
                       </svg>
                     </a>
-                  </div>
+                  </</div>
                 </div>`;
               icon = defaultIcon;
           }
