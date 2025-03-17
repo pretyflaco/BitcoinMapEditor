@@ -244,7 +244,7 @@ function MapLayer() {
       L.circle(e.latlng, radius, {
         color: '#136AEC',
         fillColor: '#136AEC',
-        fillOpacity: 0.25,
+        fillOpacity: 0.175,
         weight: 2
       }).addTo(map);
     });
