@@ -9,6 +9,11 @@ const BLINK_API = 'https://api.blink.sv/graphql';
 const BITCOIN_JUNGLE_API = 'https://api.mainnet.bitcoinjungle.app/graphql';
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Add a status endpoint to verify server is running
+  app.get("/api/status", (_req, res) => {
+    res.json({ status: "ok" });
+  });
+
   app.post("/api/merchants", async (req, res) => {
     try {
       const merchantData = insertMerchantSchema.parse(req.body);
@@ -89,13 +94,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
         throw new Error('No business map markers returned from Blink API');
       }
 
-      console.log('Blink API Response:', JSON.stringify(data, null, 2)); 
+      console.log('Blink API Response:', JSON.stringify(data, null, 2));
 
       res.json(data.businessMapMarkers);
     } catch (error) {
       console.error('Blink API error:', error);
       res.status(500).json({ 
         message: "Failed to fetch merchants from Blink",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.get("/api/bitcoinjungle/merchants", async (_req, res) => {
+    const bitcoinJungleQuery = gql`
+      query {
+        getAllBusinesses {
+          id
+          businessName
+          address
+          location {
+            type
+            coordinates {
+              latitude
+              longitude
+            }
+          }
+          description
+          category
+          website
+          instagram
+          phone
+          email
+          deliveryAvailable
+          payLightningScore
+          createdAt
+          updatedAt
+        }
+      }
+    `;
+
+    try {
+      console.log('Querying Bitcoin Jungle API...');
+      console.log('Bitcoin Jungle API URL:', BITCOIN_JUNGLE_API);
+      console.log('Query:', bitcoinJungleQuery.toString());
+
+      const data = await request(
+        BITCOIN_JUNGLE_API,
+        bitcoinJungleQuery,
+        {},
+        {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      );
+
+      if (!data?.getAllBusinesses) {
+        throw new Error('No businesses returned from Bitcoin Jungle API');
+      }
+
+      console.log('Bitcoin Jungle API Response:', JSON.stringify(data, null, 2));
+
+      res.json(data.getAllBusinesses);
+    } catch (error) {
+      console.error('Bitcoin Jungle API error details:', {
+        error,
+        stack: error instanceof Error ? error.stack : undefined,
+        url: BITCOIN_JUNGLE_API,
+        query: bitcoinJungleQuery.toString()
+      });
+      res.status(500).json({ 
+        message: "Failed to fetch merchants from Bitcoin Jungle",
         error: error instanceof Error ? error.message : "Unknown error"
       });
     }
@@ -158,65 +227,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-
-  app.get("/api/bitcoinjungle/merchants", async (_req, res) => {
-    try {
-      console.log('Querying Bitcoin Jungle API...');
-      const query = gql`
-        query {
-          getAllBusinesses {
-            id
-            businessName
-            address
-            location {
-              type
-              coordinates
-            }
-            description
-            category
-            website
-            instagram
-            phone
-            email
-            deliveryAvailable
-            payLightningScore
-            createdAt
-            updatedAt
-          }
-        }
-      `;
-
-      const data = await request(
-        BITCOIN_JUNGLE_API,
-        query,
-        {},
-        {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        }
-      );
-
-      if (!data?.getAllBusinesses) {
-        throw new Error('No businesses returned from Bitcoin Jungle API');
-      }
-
-      console.log('Bitcoin Jungle API Response:', JSON.stringify(data, null, 2));
-
-      res.json(data.getAllBusinesses);
-    } catch (error) {
-      console.error('Bitcoin Jungle API error details:', {
-        error,
-        stack: error instanceof Error ? error.stack : undefined,
-        url: BITCOIN_JUNGLE_API,
-        query: query.toString()
-      });
-      res.status(500).json({ 
-        message: "Failed to fetch merchants from Bitcoin Jungle",
-        error: error instanceof Error ? error.message : "Unknown error"
-      });
-    }
-  });
-
   const httpServer = createServer(app);
   return httpServer;
 }
