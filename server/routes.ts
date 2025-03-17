@@ -107,43 +107,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/bitcoinjungle/merchants", async (_req, res) => {
-    // Simplify the query to test basic functionality
-    const bitcoinJungleQuery = gql`
-      query {
-        businesses {
-          id
-          name
-          coordinates {
-            latitude
-            longitude
-          }
-        }
-      }
-    `;
-
     try {
-      console.log('Querying Bitcoin Jungle API...');
-      console.log('Bitcoin Jungle API URL:', BITCOIN_JUNGLE_API);
-      console.log('Query:', bitcoinJungleQuery.toString());
+      // First get the token
+      const tokenResponse = await fetch('https://maps.bitcoinjungle.app/api/token');
+      if (!tokenResponse.ok) {
+        throw new Error('Failed to fetch token');
+      }
+      const { token } = await tokenResponse.json();
 
-      const data = await request(
-        BITCOIN_JUNGLE_API,
-        bitcoinJungleQuery,
-        {},
-        {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'x-api-version': '1.0'
+      // Now use the token to fetch merchants
+      const response = await fetch('https://maps.bitcoinjungle.app/api/merchants', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
-      );
+      });
 
-      if (!data?.businesses) {
-        throw new Error('No businesses returned from Bitcoin Jungle API');
+      if (!response.ok) {
+        throw new Error('Failed to fetch merchants');
+      }
+
+      const data = await response.json();
+
+      if (!data) {
+        throw new Error('No merchants returned from Bitcoin Jungle API');
       }
 
       console.log('Bitcoin Jungle API Response:', JSON.stringify(data, null, 2));
 
-      res.json(data.businesses);
+      res.json(data);
     } catch (error) {
       console.error('Bitcoin Jungle API error details:', {
         error,
