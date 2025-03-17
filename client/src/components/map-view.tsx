@@ -303,7 +303,7 @@ function LocationMarker({ selectedLocation, onLocationSelect }: MapViewProps) {
 }
 
 // Add custom icon definitions
-const createCustomIcon = (type: 'blink' | 'btcmap' | 'default') => {
+const createCustomIcon = (type: 'blink' | 'btcmap' | 'default' | 'bitcoinjungle') => {
   let color: string;
   switch (type) {
     case 'blink':
@@ -311,6 +311,9 @@ const createCustomIcon = (type: 'blink' | 'btcmap' | 'default') => {
       break;
     case 'btcmap':
       color = '#0891B2'; // cyan
+      break;
+    case 'bitcoinjungle':
+      color = '#f59e0b'; //gold
       break;
     default:
       color = '#10B981'; // green
@@ -328,6 +331,8 @@ const createCustomIcon = (type: 'blink' | 'btcmap' | 'default') => {
 const blinkIcon = createCustomIcon('blink');
 const btcmapIcon = createCustomIcon('btcmap');
 const defaultIcon = createCustomIcon('default');
+const bitcoinJungleIcon = createCustomIcon('bitcoinjungle');
+
 
 function MerchantMarkers() {
   const map = useMap();
@@ -389,6 +394,10 @@ function MerchantMarkers() {
     queryKey: ["/api/blink/merchants"],
   });
 
+  const { data: bitcoinJungleMerchants = [] } = useQuery<any[]>({
+    queryKey: ["/api/bitcoinjungle/merchants"],
+  });
+
   const updateVisibleMarkers = useCallback(() => {
     if (!map) return;
 
@@ -401,7 +410,7 @@ function MerchantMarkers() {
     const cellLngSize = lngSpan / GRID_SIZE;
     const grid: Array<{
       merchant: any;
-      source: 'local' | 'btcmap' | 'blink';
+      source: 'local' | 'btcmap' | 'blink' | 'bitcoinjungle';
       cell: string;
     }> = [];
 
@@ -443,10 +452,25 @@ function MerchantMarkers() {
       }
     });
 
+    // Process Bitcoin Jungle merchants
+    bitcoinJungleMerchants.forEach(merchant => {
+      const lat = merchant.location?.coordinates?.latitude;
+      const lng = merchant.location?.coordinates?.longitude;
+      if (lat && lng && bounds.contains([lat, lng])) {
+        const cellRow = Math.floor((lat - bounds.getSouth()) / cellLatSize);
+        const cellCol = Math.floor((lng - bounds.getWest()) / cellLngSize);
+        const cell = `${cellRow}-${cellCol}`;
+        grid.push({ merchant, source: 'bitcoinjungle', cell });
+      }
+    });
+
     // Find new markers that aren't already on the map
     const newMarkers = grid.filter(item => {
       let id: string;
       switch (item.source) {
+        case 'bitcoinjungle':
+          id = `bitcoinjungle-${item.merchant.id}`;
+          break;
         case 'blink':
           id = `blink-${item.merchant.username}`;
           break;
@@ -465,25 +489,26 @@ function MerchantMarkers() {
         acc[item.cell] = {
           blink: [],
           btcmap: [],
-          local: []
+          local: [],
+          bitcoinjungle: []
         };
       }
       acc[item.cell][item.source].push(item);
       return acc;
-    }, {} as Record<string, Record<'blink' | 'btcmap' | 'local', typeof grid>>);
+    }, {} as Record<string, Record<'blink' | 'btcmap' | 'local' | 'bitcoinjungle', typeof grid>>);
 
     // Add new markers up to the limit
     let addedCount = 0;
-    const maxPerSource = Math.floor(MAX_NEW_MARKERS / 3);
+    const maxPerSource = Math.floor(MAX_NEW_MARKERS / 4);
     const maxPerCellPerSource = Math.ceil(maxPerSource / (GRID_SIZE * GRID_SIZE));
 
     Object.values(newMarkersGroups).forEach(cellSources => {
       if (addedCount >= MAX_NEW_MARKERS) return;
 
-      ['blink', 'btcmap', 'local'].forEach(source => {
+      ['bitcoinjungle', 'blink', 'btcmap', 'local'].forEach(source => {
         if (addedCount >= MAX_NEW_MARKERS) return;
 
-        const markers = cellSources[source as 'blink' | 'btcmap' | 'local'];
+        const markers = cellSources[source as 'bitcoinjungle' | 'blink' | 'btcmap' | 'local'];
         if (markers.length === 0) return;
 
         const take = Math.min(maxPerCellPerSource, MAX_NEW_MARKERS - addedCount, markers.length);
@@ -494,6 +519,47 @@ function MerchantMarkers() {
           let lat, lng, id, name, details, icon;
 
           switch (source) {
+            case 'bitcoinjungle':
+              lat = merchant.location.coordinates.latitude;
+              lng = merchant.location.coordinates.longitude;
+              id = `bitcoinjungle-${merchant.id}`;
+              name = merchant.name;
+              details = `
+                <div class="text-center min-w-[280px]">
+                  <img
+                    src="https://static.wixstatic.com/media/6975be_4dce3094433147fd85f76f8cf9636b13~mv2.png/v1/fill/w_77,h_78,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/bitcoin-jungle-logo-512.png"
+                    alt="Bitcoin Jungle Logo"
+                    class="w-12 h-12 mx-auto mb-2 object-contain"
+                  />
+                  <strong>${merchant.name}</strong><br/>
+                  <em>${merchant.type}</em><br/>
+                  ${merchant.description ? `${merchant.description}<br/>` : ''}
+                  ${merchant.openingHours ? `⏰ ${merchant.openingHours}<br/>` : ''}
+                  ${merchant.phone ? `📞 ${merchant.phone}<br/>` : ''}
+                  ${merchant.website ? `🌐 <a href="${merchant.website}" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">${merchant.website}</a><br/>` : ''}
+                  ${merchant.email ? `✉️ ${merchant.email}<br/>` : ''}
+                  ${merchant.lastUpdated ? `📅 Last updated: ${new Date(merchant.lastUpdated).toLocaleDateString()}<br/>` : ''}
+                  <div class="flex justify-between items-center mt-2">
+                    <div class="flex gap-2">
+                      <img
+                        src="https://btcmap.org/icons/ln-primary.svg"
+                        alt="Lightning Network enabled"
+                        class="w-6 h-6"
+                      />
+                    </div>
+                    <a href="javascript:void(0)"
+                       onclick="window.location.href = '${getNavigationUrl(lat, lng)}'"
+                       class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white hover:bg-gray-100">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
+                        <circle cx="12" cy="10" r="3"/>
+                      </svg>
+                    </a>
+                  </div>
+                </div>`;
+              icon = bitcoinJungleIcon;
+              break;
+
             case 'blink':
               lat = merchant.mapInfo.coordinates.latitude;
               lng = merchant.mapInfo.coordinates.longitude;
@@ -623,7 +689,7 @@ function MerchantMarkers() {
                        onclick="window.location.href = '${getNavigationUrl(lat, lng)}'"
                        class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white hover:bg-gray-100">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
+                                                <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
                         <circle cx="12" cy="10" r="3"/>
                       </svg>
                     </a>
@@ -649,7 +715,7 @@ function MerchantMarkers() {
     // After adding new markers, check if we need to remove distant ones
     removeDistantMarkers();
 
-  }, [map, localMerchants, btcMapMerchants, blinkMerchants, blinkIcon, btcmapIcon, defaultIcon, theme, removeDistantMarkers]);
+  }, [map, localMerchants, btcMapMerchants, blinkMerchants, bitcoinJungleMerchants, blinkIcon, btcmapIcon, defaultIcon, bitcoinJungleIcon, theme, removeDistantMarkers]);
 
   useEffect(() => {
     if (!map) return;

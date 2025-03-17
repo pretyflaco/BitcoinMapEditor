@@ -88,13 +88,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
         throw new Error('No business map markers returned from Blink API');
       }
 
-      console.log('Blink API Response:', JSON.stringify(data, null, 2)); //Added detailed logging
+      console.log('Blink API Response:', JSON.stringify(data, null, 2)); 
 
       res.json(data.businessMapMarkers);
     } catch (error) {
       console.error('Blink API error:', error);
       res.status(500).json({ 
         message: "Failed to fetch merchants from Blink",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.get("/api/bitcoinjungle/merchants", async (_req, res) => {
+    try {
+      console.log('Querying Bitcoin Jungle API...');
+      const query = gql`
+        query GetMerchants {
+          merchants {
+            id
+            name
+            location {
+              coordinates {
+                latitude
+                longitude
+              }
+            }
+            description
+            type
+            website
+            socialNetworks
+            phone
+            email
+            images
+            openingHours
+            lastUpdated
+          }
+        }
+      `;
+
+      const data = await request(
+        'https://api.mainnnet.bitcoinjungle.app/graphql',
+        query,
+        {},
+        {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      );
+
+      if (!data?.merchants) {
+        throw new Error('No merchants returned from Bitcoin Jungle API');
+      }
+
+      console.log('Bitcoin Jungle API Response:', JSON.stringify(data, null, 2));
+
+      res.json(data.merchants);
+    } catch (error) {
+      console.error('Bitcoin Jungle API error:', error);
+      res.status(500).json({ 
+        message: "Failed to fetch merchants from Bitcoin Jungle",
         error: error instanceof Error ? error.message : "Unknown error"
       });
     }
