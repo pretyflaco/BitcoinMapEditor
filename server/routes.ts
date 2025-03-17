@@ -162,25 +162,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log('Querying Bitcoin Jungle API...');
       const query = gql`
-        query GetMerchants {
-          merchants {
+        query {
+          getAllBusinesses {
             id
-            name
+            businessName
+            address
             location {
-              coordinates {
-                latitude
-                longitude
-              }
+              type
+              coordinates
             }
             description
-            type
+            category
             website
-            socialNetworks
+            instagram
             phone
             email
-            images
-            openingHours
-            lastUpdated
+            deliveryAvailable
+            payLightningScore
+            createdAt
+            updatedAt
           }
         }
       `;
@@ -195,13 +195,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       );
 
-      if (!data?.merchants) {
-        throw new Error('No merchants returned from Bitcoin Jungle API');
+      if (!data?.getAllBusinesses) {
+        throw new Error('No businesses returned from Bitcoin Jungle API');
       }
 
       console.log('Bitcoin Jungle API Response:', JSON.stringify(data, null, 2));
 
-      res.json(data.merchants);
+      res.json(data.getAllBusinesses);
     } catch (error) {
       console.error('Bitcoin Jungle API error:', error);
       res.status(500).json({ 
