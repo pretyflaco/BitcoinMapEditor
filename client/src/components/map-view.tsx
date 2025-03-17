@@ -524,7 +524,7 @@ function MerchantMarkers() {
               lat = merchant.location.coordinates.latitude;
               lng = merchant.location.coordinates.longitude;
               id = `bitcoinjungle-${merchant.id}`;
-              name = merchant.name;
+              name = merchant.businessName;
               details = `
                 <div class="text-center min-w-[280px]">
                   <img
@@ -532,14 +532,14 @@ function MerchantMarkers() {
                     alt="Bitcoin Jungle Logo"
                     class="w-12 h-12 mx-auto mb-2 object-contain"
                   />
-                  <strong>${merchant.name}</strong><br/>
-                  <em>${merchant.type}</em><br/>
+                  <strong>${merchant.businessName}</strong><br/>
+                  <em>${merchant.category}</em><br/>
                   ${merchant.description ? `${merchant.description}<br/>` : ''}
                   ${merchant.openingHours ? `⏰ ${merchant.openingHours}<br/>` : ''}
                   ${merchant.phone ? `📞 ${merchant.phone}<br/>` : ''}
                   ${merchant.website ? `🌐 <a href="${merchant.website}" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">${merchant.website}</a><br/>` : ''}
                   ${merchant.email ? `✉️ ${merchant.email}<br/>` : ''}
-                  ${merchant.lastUpdated ? `📅 Last updated: ${new Date(merchant.lastUpdated).toLocaleDateString()}<br/>` : ''}
+                  ${merchant.updatedAt ? `📅 Last updated: ${new Date(merchant.updatedAt).toLocaleDateString()}<br/>` : ''}
                   <div class="flex justify-between items-center mt-2">
                     <div class="flex gap-2">
                       <img
@@ -692,9 +692,8 @@ function MerchantMarkers() {
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                 <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
                         <circle cx="12" cy="10" r="3"/>
-                      </svg>
-                    </a>
-                  </</div>
+                      </svg                    </a>
+                  </div>
                 </div>`;
               icon = defaultIcon;
           }
