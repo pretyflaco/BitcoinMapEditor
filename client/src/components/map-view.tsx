@@ -241,7 +241,12 @@ function MapLayer() {
       const radius = e.accuracy;
       L.marker(e.latlng).addTo(map)
         .bindPopup("You are within " + Math.round(radius) + " meters from this point").openPopup();
-      L.circle(e.latlng, radius).addTo(map);
+      L.circle(e.latlng, radius, {
+        color: '#136AEC',
+        fillColor: '#136AEC',
+        fillOpacity: 0.25,
+        weight: 2
+      }).addTo(map);
     });
 
     map.on('locationerror', (error: L.ErrorEvent) => {
@@ -502,6 +507,7 @@ function MerchantMarkers() {
               const phone = tags.phone || tags['contact:phone'];
               const website = tags.website || tags['contact:website'];
               const openingHours = tags['opening_hours'];
+              const lastSurveyed = merchant.check_date ? new Date(merchant.check_date).toISOString().split('T')[0] : null;
               details = `
                 <div class="text-center">
                   <img 
@@ -515,6 +521,7 @@ function MerchantMarkers() {
                   ${phone ? `📞 ${phone}<br/>` : ''}
                   ${website ? `🌐 <a href="${website}" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">${website}</a><br/>` : ''}
                   ${openingHours ? `⏰ ${openingHours}<br/>` : ''}
+                  ${lastSurveyed ? `📅 Last surveyed: ${lastSurveyed}<br/>` : ''}
                   <div class="flex justify-center mt-2">
                     <a href="javascript:void(0)"
                        onclick="window.location.href = '${getNavigationUrl(lat, lng)}'"
