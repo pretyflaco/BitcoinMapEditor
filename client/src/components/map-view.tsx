@@ -453,7 +453,6 @@ function MerchantMarkers() {
       }
     });
 
-    // Process Bitcoin Jungle merchants
     bitcoinJungleMerchants.forEach(merchant => {
       const lat = merchant.location?.coordinates?.latitude;
       const lng = merchant.location?.coordinates?.longitude;
@@ -690,9 +689,10 @@ function MerchantMarkers() {
                        onclick="window.location.href = '${getNavigationUrl(lat, lng)}'"
                        class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white hover:bg-gray-100">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
+                        <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
                         <circle cx="12" cy="10" r="3"/>
-                      </svg                    </a>
+                      </svg>
+                    </a>
                   </div>
                 </div>`;
               icon = defaultIcon;
