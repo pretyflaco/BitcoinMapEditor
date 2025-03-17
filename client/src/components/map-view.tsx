@@ -334,7 +334,7 @@ const createCustomIcon = (type: 'blink' | 'btcmap' | 'default' | 'bitcoinjungle'
       color = '#75B5A2'; // sage green
       break;
     case 'bitcoinpeople':
-      color = '#3B82F6'; // blue
+      color = '#0A635E'; // dark green
       break;
     default:
       color = '#10B981'; // green
@@ -427,10 +427,14 @@ function MerchantMarkers() {
     }
   });
 
+  // Add more detailed logging for Bitcoin People data
   const { data: bitcoinPeopleMerchants = [], isError: isErrorBP, error: errorBP, isLoading: isLoadingBP } = useQuery({
     queryKey: ["/api/bitcoinpeople/merchants"],
     enabled: true,
-    select: (data: any) => data?.locations || [],
+    select: (data: any) => {
+      console.log('Raw Bitcoin People data:', data);
+      return data?.locations || [];
+    },
     onSuccess: (data) => {
       console.log('Bitcoin People merchants data received:', data);
     },
@@ -516,16 +520,19 @@ function MerchantMarkers() {
       }
     });
 
+    // Add more logging in the merchant processing loop
     bitcoinPeopleMerchants.forEach(merchant => {
       const lat = merchant.coordinates?.latitude;
       const lng = merchant.coordinates?.longitude;
+      console.log('Processing Bitcoin People merchant:', { merchant, lat, lng });
       if (lat && lng && bounds.contains([lat, lng])) {
-        console.log('Processing Bitcoin People merchant:', merchant);
+        console.log('Adding Bitcoin People merchant to grid:', merchant);
         const cellRow = Math.floor((lat - bounds.getSouth()) / cellLatSize);
         const cellCol = Math.floor((lng - bounds.getWest()) / cellLngSize);
         const cell = `${cellRow}-${cellCol}`;
         grid.push({ merchant, source: 'bitcoinpeople', cell });
-        console.log('Added Bitcoin People merchant to grid:', { lat, lng, cell });
+      } else {
+        console.log('Bitcoin People merchant skipped - invalid coordinates:', { lat, lng });
       }
     });
 
@@ -720,7 +727,7 @@ function MerchantMarkers() {
               lat = merchant.osm_json.lat;
               lng = merchant.osm_json.lon;
               id = `btcmap-${merchant.id}`;
-              name = merchant.osm_json.tags?.name || 'Unknown Merchant';
+              name = merchant.osmjson.tags?.name || 'Unknown Merchant';
               const tags = merchant.osm_json.tags || {};
               const address = [
                 tags['addr:street'],
