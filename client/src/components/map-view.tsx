@@ -460,7 +460,7 @@ function MerchantMarkers() {
               id = `blink-${merchant.username}`;
               name = merchant.mapInfo.title;
               details = `
-                <div class="text-center">
+                <div class="text-center min-w-[280px]">
                   <img 
                     src="https://cdn.prod.website-files.com/6720ed07d56bdfa402a08023/6720ed07d56bdfa402a081b7_blink-icon-p-500.png"
                     alt="Blink Logo" 
@@ -468,24 +468,33 @@ function MerchantMarkers() {
                   />
                   <strong>${merchant.mapInfo.title}</strong><br/>
                   <span>@${merchant.username}</span><br/>
-                  <div class="flex justify-center gap-2 mt-2">
-                    <a href="https://pay.blink.sv/${merchant.username}" 
-                       target="_blank" 
-                       rel="noopener noreferrer" 
-                       class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white hover:bg-gray-100">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="2" y="5" width="20" height="14" rx="2"/>
-                        <line x1="2" y1="10" x2="22" y2="10"/>
-                      </svg>
-                    </a>
-                    <a href="javascript:void(0)"
-                       onclick="window.location.href = '${getNavigationUrl(lat, lng)}'"
-                       class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white hover:bg-gray-100">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
-                        <circle cx="12" cy="10" r="3"/>
-                      </svg>
-                    </a>
+                  <div class="flex justify-between items-center mt-2">
+                    <div class="flex gap-2">
+                      <img 
+                        src="https://btcmap.org/icons/ln-primary.svg"
+                        alt="Lightning Network enabled"
+                        class="w-6 h-6"
+                      />
+                    </div>
+                    <div class="flex gap-2">
+                      <a href="https://pay.blink.sv/${merchant.username}" 
+                         target="_blank" 
+                         rel="noopener noreferrer" 
+                         class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white hover:bg-gray-100">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <rect x="2" y="5" width="20" height="14" rx="2"/>
+                          <line x1="2" y1="10" x2="22" y2="10"/>
+                        </svg>
+                      </a>
+                      <a href="javascript:void(0)"
+                         onclick="window.location.href = '${getNavigationUrl(lat, lng)}'"
+                         class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white hover:bg-gray-100">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
+                          <circle cx="12" cy="10" r="3"/>
+                        </svg>
+                      </a>
+                    </div>
                   </div>
                 </div>`;
               icon = blinkIcon;
@@ -541,7 +550,7 @@ function MerchantMarkers() {
                         class="w-6 h-6"
                       />
                       <img 
-                        src="https://btcmap.org/icons/${paymentMethods.contactless === 'yes' ? 'nfc-primary' : 'nfc'}.svg"
+                        src="https://btcmap.org/icons/${paymentMethods.contactless === 'yes' ? 'nfc-primary' : 'nfc-no'}.svg"
                         alt="Contactless payments"
                         class="w-6 h-6"
                       />
@@ -617,7 +626,6 @@ function MerchantMarkers() {
 
   return null;
 }
-
 
 
 export default function MapView({ selectedLocation, onLocationSelect }: MapViewProps) {
