@@ -331,7 +331,7 @@ const createCustomIcon = (type: 'blink' | 'btcmap' | 'default' | 'bitcoinjungle'
       color = '#0891B2'; // cyan
       break;
     case 'bitcoinjungle':
-      color = '#f59e0b'; //gold
+      color = '#75B5A2'; // sage green
       break;
     default:
       color = '#10B981'; // green
@@ -711,7 +711,7 @@ function MerchantMarkers() {
                       </svg>
                     </a>
                   </div>
-                </div>`;
+                </div`;
               icon = btcmapIcon;
               break;
 
