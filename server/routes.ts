@@ -107,29 +107,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/bitcoinjungle/merchants", async (_req, res) => {
+    // Simplify the query to test basic functionality
     const bitcoinJungleQuery = gql`
       query {
-        getAllBusinesses {
+        businesses {
           id
-          businessName
-          address
-          location {
-            type
-            coordinates {
-              latitude
-              longitude
-            }
+          name
+          coordinates {
+            latitude
+            longitude
           }
-          description
-          category
-          website
-          instagram
-          phone
-          email
-          deliveryAvailable
-          payLightningScore
-          createdAt
-          updatedAt
         }
       }
     `;
@@ -145,17 +132,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         {},
         {
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          'x-api-version': '1.0'
         }
       );
 
-      if (!data?.getAllBusinesses) {
+      if (!data?.businesses) {
         throw new Error('No businesses returned from Bitcoin Jungle API');
       }
 
       console.log('Bitcoin Jungle API Response:', JSON.stringify(data, null, 2));
 
-      res.json(data.getAllBusinesses);
+      res.json(data.businesses);
     } catch (error) {
       console.error('Bitcoin Jungle API error details:', {
         error,
@@ -170,6 +158,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add introspection endpoint to examine the API schema
   app.get("/api/bitcoinjungle/introspection", async (_req, res) => {
     try {
       console.log('Querying Bitcoin Jungle API Schema...');
@@ -227,6 +216,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+
   const httpServer = createServer(app);
   return httpServer;
 }

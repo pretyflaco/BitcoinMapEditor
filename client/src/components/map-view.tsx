@@ -143,7 +143,7 @@ function MapLayer() {
   const handleSearch = useCallback((query: string, resultsContainer: HTMLDivElement) => {
     const searchResults: Array<{
       name: string;
-      type: 'local' | 'btcmap' | 'blink';
+      type: 'local' | 'btcmap' | 'blink' | 'bitcoinjungle';
       lat: number;
       lng: number;
     }> = [];
@@ -394,10 +394,25 @@ function MerchantMarkers() {
     queryKey: ["/api/blink/merchants"],
   });
 
-  const { data: bitcoinJungleMerchants = [] } = useQuery<any[]>({
+  const { data: bitcoinJungleMerchants = [], isError, error, isLoading } = useQuery({
     queryKey: ["/api/bitcoinjungle/merchants"],
-    enabled: true // Explicitly enable the query
+    enabled: true,
+    onSuccess: (data) => {
+      console.log('Bitcoin Jungle merchants data received:', data);
+    },
+    onError: (error) => {
+      console.error('Bitcoin Jungle merchants fetch error:', error);
+    }
   });
+
+  useEffect(() => {
+    if (isError) {
+      console.error('Bitcoin Jungle query error:', error);
+    }
+    if (!isLoading) {
+      console.log('Current Bitcoin Jungle merchants:', bitcoinJungleMerchants);
+    }
+  }, [bitcoinJungleMerchants, isError, error, isLoading]);
 
   const updateVisibleMarkers = useCallback(() => {
     if (!map) return;
@@ -457,10 +472,12 @@ function MerchantMarkers() {
       const lat = merchant.location?.coordinates?.latitude;
       const lng = merchant.location?.coordinates?.longitude;
       if (lat && lng && bounds.contains([lat, lng])) {
+        console.log('Processing Bitcoin Jungle merchant:', merchant);
         const cellRow = Math.floor((lat - bounds.getSouth()) / cellLatSize);
         const cellCol = Math.floor((lng - bounds.getWest()) / cellLngSize);
         const cell = `${cellRow}-${cellCol}`;
         grid.push({ merchant, source: 'bitcoinjungle', cell });
+        console.log('Added Bitcoin Jungle merchant to grid:', { lat, lng, cell });
       }
     });
 
@@ -520,10 +537,10 @@ function MerchantMarkers() {
 
           switch (source) {
             case 'bitcoinjungle':
-              lat = merchant.location.coordinates.latitude;
-              lng = merchant.location.coordinates.longitude;
+              lat = merchant.coordinates.latitude;
+              lng = merchant.coordinates.longitude;
               id = `bitcoinjungle-${merchant.id}`;
-              name = merchant.businessName;
+              name = merchant.name;
               details = `
                 <div class="text-center min-w-[280px]">
                   <img
@@ -531,14 +548,7 @@ function MerchantMarkers() {
                     alt="Bitcoin Jungle Logo"
                     class="w-12 h-12 mx-auto mb-2 object-contain"
                   />
-                  <strong>${merchant.businessName}</strong><br/>
-                  <em>${merchant.category}</em><br/>
-                  ${merchant.description ? `${merchant.description}<br/>` : ''}
-                  ${merchant.openingHours ? `⏰ ${merchant.openingHours}<br/>` : ''}
-                  ${merchant.phone ? `📞 ${merchant.phone}<br/>` : ''}
-                  ${merchant.website ? `🌐 <a href="${merchant.website}" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">${merchant.website}</a><br/>` : ''}
-                  ${merchant.email ? `✉️ ${merchant.email}<br/>` : ''}
-                  ${merchant.updatedAt ? `📅 Last updated: ${new Date(merchant.updatedAt).toLocaleDateString()}<br/>` : ''}
+                  <strong>${merchant.name}</strong><br/>
                   <div class="flex justify-between items-center mt-2">
                     <div class="flex gap-2">
                       <img
@@ -688,8 +698,7 @@ function MerchantMarkers() {
                     <a href="javascript:void(0)"
                        onclick="window.location.href = '${getNavigationUrl(lat, lng)}'"
                        class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white hover:bg-gray-100">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 1 1 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
                         <circle cx="12" cy="10" r="3"/>
                       </svg>
                     </a>
@@ -735,6 +744,7 @@ function MerchantMarkers() {
 
   return null;
 }
+
 
 
 export default function MapView({ selectedLocation, onLocationSelect }: MapViewProps) {
