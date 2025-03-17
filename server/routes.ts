@@ -100,6 +100,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/bitcoinjungle/introspection", async (_req, res) => {
+    try {
+      console.log('Querying Bitcoin Jungle API Schema...');
+      const query = gql`
+        query IntrospectionQuery {
+          __schema {
+            queryType {
+              name
+              fields {
+                name
+                description
+                args {
+                  name
+                  description
+                  type {
+                    name
+                    kind
+                  }
+                }
+                type {
+                  name
+                  kind
+                }
+              }
+            }
+            types {
+              name
+              kind
+              description
+              fields {
+                name
+                description
+              }
+            }
+          }
+        }
+      `;
+
+      const data = await request(
+        'https://api.mainnet.bitcoinjungle.app/graphql',
+        query,
+        {},
+        {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      );
+
+      res.json(data);
+    } catch (error) {
+      console.error('Bitcoin Jungle API Schema error:', error);
+      res.status(500).json({ 
+        message: "Failed to fetch Bitcoin Jungle API schema",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   app.get("/api/bitcoinjungle/merchants", async (_req, res) => {
     try {
       console.log('Querying Bitcoin Jungle API...');
@@ -128,7 +186,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       `;
 
       const data = await request(
-        'https://api.mainnnet.bitcoinjungle.app/graphql',
+        'https://api.mainnet.bitcoinjungle.app/graphql',
         query,
         {},
         {
