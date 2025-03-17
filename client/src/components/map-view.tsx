@@ -571,7 +571,7 @@ function MerchantMarkers() {
               details = `
                 <div class="text-center min-w-[280px]">
                   <img
-                    src="/assets/bitcoinjungle.png" 
+                    src="/images/bitcoinjungle.png"
                     alt="Bitcoin Jungle Logo"
                     class="w-12 h-12 mx-auto mb-2 object-contain"
                   />
@@ -609,7 +609,7 @@ function MerchantMarkers() {
               details = `
                 <div class="text-center min-w-[280px]">
                   <img
-                    src="/assets/blink.png"
+                    src="/images/blink.png"
                     alt="Blink Logo"
                     class="w-12 h-12 mx-auto mb-2 object-contain"
                   />
@@ -723,13 +723,13 @@ function MerchantMarkers() {
               details = `
                 <div class="text-center">
                   <strong>${merchant.name}</strong><br/>
-                  <em>${merchant.type}em><br/>
+                  <em>${merchant.type}</em><br/>
                   ${merchant.address}<br/>
                   <div class="flex justify-center mt-2">
                     <a href="javascript:void(0)"
                        onclick="window.location.href = '${getNavigationUrl(lat, lng)}'"
-                       class="inline-flex items-center justify-center w-8 h-8 roundedfull bg-white hover:bg-gray-100">
-                      <svg width="16" height="16"viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 1 1 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
+                       class="inline-flex                       class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white hover:bg-gray-100">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
                         <circle cx="12" cy="10" r="3"/>
                       </svg>
                     </a>
@@ -761,22 +761,41 @@ function MerchantMarkers() {
     if (!map) return;
 
     const throttledUpdate = L.Util.throttle(updateVisibleMarkers, 500, { leading: true });
-    map.on('moveend', throttledUpdate);
-    map.on('zoomend', throttledUpdate);
 
-    updateVisibleMarkers();
+    // Only add event listeners if map is mounted
+    const moveHandler = () => {
+      if (map) throttledUpdate();
+    };
+
+    const zoomHandler = () => {
+      if (map) throttledUpdate();
+    };
+
+    map.on('moveend', moveHandler);
+    map.on('zoomend', zoomHandler);
+
+    // Initial update with error handling
+    try {
+      updateVisibleMarkers();
+    } catch (error) {
+      console.warn('Error during initial marker update:', error);
+    }
 
     return () => {
-      map.off('moveend', throttledUpdate);
-      map.off('zoomend', throttledUpdate);
-      // Note: We don't clear markers on unmount anymore
+      // Cleanup with error handling
+      try {
+        if (map) {
+          map.off('moveend', moveHandler);
+          map.off('zoomend', zoomHandler);
+        }
+      } catch (error) {
+        console.warn('Error during map event cleanup:', error);
+      }
     };
   }, [map, updateVisibleMarkers]);
 
   return null;
 }
-
-
 
 export default function MapView({ selectedLocation, onLocationSelect }: MapViewProps) {
   return (
@@ -785,7 +804,8 @@ export default function MapView({ selectedLocation, onLocationSelect }: MapViewP
       zoom={2}
       style={{ height: "100%", width: "100%" }}
       className="absolute inset-0"
-      zoomControl={true} // Enable zoom controls (will be hidden on mobile via CSS)
+      zoomControl={true}
+      preferCanvas={true}
     >
       <MapLayer />
       <LocationMarker
