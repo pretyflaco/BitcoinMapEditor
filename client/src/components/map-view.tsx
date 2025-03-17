@@ -542,18 +542,26 @@ function MerchantMarkers() {
               lng = merchant.coordinates.longitude;
               id = `bitcoinjungle-${merchant.id}`;
               name = merchant.name;
+              // Helper function to truncate URLs
+              function truncateUrl(url: string, maxLength: number = 30): string {
+                if (!url) return '';
+                // Remove protocol (http:// or https://)
+                const cleanUrl = url.replace(/^https?:\/\//i, '');
+                if (cleanUrl.length <= maxLength) return cleanUrl;
+                return cleanUrl.substring(0, maxLength - 3) + '...';
+              }
               details = `
                 <div class="text-center min-w-[280px]">
                   <img
-                    src="https://static.wixstatic.com/media/6975be_4dce3094433147fd85f76f8cf9636b13~mv2.png/v1/fill/w_77,h_78,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/bitcoin-jungle-logo-512.png"
+                    src="https://cdn.prod.website-files.com/6720ed07d56bdfa402a08023/6720ed07d56bdfa402a081cc_logo%2520white%2520tagline-p-500.png"
                     alt="Bitcoin Jungle Logo"
                     class="w-12 h-12 mx-auto mb-2 object-contain"
                   />
                   <strong>${merchant.name}</strong><br/>
                   ${merchant.categories?.map(cat => cat.name).join(', ')}<br/>
                   ${merchant.phone ? `📞 ${merchant.phone}<br/>` : ''}
-                  ${merchant.website ? `🌐 <a href="${merchant.website}" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">${merchant.website}</a><br/>` : ''}
-                  ${merchant.description ? `${merchant.description}<br/>` : ''}
+                  ${merchant.website ? `🌐 <a href="${merchant.website}" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline" style="word-break: break-word;">${truncateUrl(merchant.website)}</a><br/>` : ''}
+                  ${merchant.description ? `<div class="mt-2" style="word-break: break-word;">${merchant.description}</div>` : ''}
                   <div class="flex justify-between items-center mt-2">
                     <div class="flex gap-2">
                       <img
