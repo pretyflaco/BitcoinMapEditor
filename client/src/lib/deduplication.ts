@@ -3,7 +3,7 @@ import * as turf from '@turf/turf';
 
 // Configuration options for deduplication
 export const DEDUP_CONFIG = {
-  NAME_SIMILARITY_THRESHOLD: 0.6,  // Lowered to catch more edge cases
+  NAME_SIMILARITY_THRESHOLD: 0.55,  // Lowered to catch more edge cases with varying names
   DISTANCE_THRESHOLD: 100,         // 100 meters
   GRID_SIZE: 0.01,                // Roughly 1km grid cells
   NAME_WEIGHT: 0.7,               // Increased weight for name similarity
@@ -15,7 +15,7 @@ function cleanMerchantName(name: string): string {
   return name.toLowerCase()
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Remove diacritics (é -> e)
     .replace(/[^\w\s]/g, ' ')  // Replace special characters with spaces
-    .replace(/\b(cafe|café|restaurant|bar|shop|store|ltd|inc|limited|llc|attorney|notary|law|firm|lawyer|abogado|legal|salvadoran|el salvador|and|&|the)\b/g, '')  // Remove common business words
+    .replace(/\b(cafe|café|restaurant|bar|shop|store|ltd|inc|limited|llc|attorney|notary|law|firm|lawyer|abogado|legal|salvadoran|el salvador|and|&|the|specialty|roasters|bit|bitcofe|bitcoin)\b/g, '')  // Remove common business words
     .trim()
     .replace(/\s+/g, ' '); // Normalize spaces
 }
