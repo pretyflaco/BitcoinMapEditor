@@ -241,18 +241,18 @@ export default function Home() {
           <div className="absolute top-0 right-0 h-full pointer-events-auto">
             <Card className="w-96 h-full flex flex-col">
               <CardContent className="p-4 flex flex-col h-full">
-                <div className="flex-none">
+                <div className="flex-none mb-6">
                   <h2 className="text-2xl font-semibold mb-2">
                     Suggest Business
                   </h2>
-                  <p className="text-sm text-muted-foreground mb-6">
+                  <p className="text-sm text-muted-foreground">
                     Fill out the following form and one of our volunteer community members will add your location to the map.
                   </p>
                 </div>
 
                 <Form {...merchantForm}>
                   <form onSubmit={merchantForm.handleSubmit(onSubmit)} className="flex flex-col h-full">
-                    <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+                    <div className="flex-1 overflow-y-auto space-y-4 pr-2 pb-6">
                       <FormField
                         control={merchantForm.control}
                         name="name"
@@ -479,7 +479,7 @@ export default function Home() {
                       />
                     </div>
 
-                    <div className="flex-none pt-4 mt-4 border-t">
+                    <div className="flex-none pt-4 mt-4 border-t bg-background sticky bottom-0">
                       <div className="flex gap-2">
                         <Button variant="outline" onClick={handleCancel} className="flex-1">
                           Cancel
