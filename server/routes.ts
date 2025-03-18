@@ -4,12 +4,12 @@ import { insertMerchantSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { request, gql } from 'graphql-request';
 import { ZodError } from "zod";
-import ReverseGeocoding from 'reverse-geocoding';
 
 const BLINK_API = 'https://api.blink.sv/graphql';
 const BITCOIN_JUNGLE_API = 'https://api.mainnet.bitcoinjungle.app/graphql';
 const GITHUB_TOKEN = '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';
 const GITHUB_REPO = 'pretyflaco/BitcoinMapEditor';
+const GOOGLE_MAPS_API_KEY = 'AIzaSyBpzP5RTtQKVxGkzxH9IjigqPrVG3ucLLM';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Add a status endpoint to verify server is running
@@ -21,26 +21,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const merchantData = insertMerchantSchema.parse(req.body);
 
-      // Get country from coordinates
+      // Get country from coordinates using Google Maps Geocoding API directly
       let country = '';
       try {
-        const geocoder = new ReverseGeocoding({
-          key: 'AIzaSyBpzP5RTtQKVxGkzxH9IjigqPrVG3ucLLM'
-        });
+        const response = await fetch(
+          `https://maps.googleapis.com/maps/api/geocode/json?latlng=${merchantData.latitude},${merchantData.longitude}&key=${GOOGLE_MAPS_API_KEY}`
+        );
 
-        const geoData = await new Promise((resolve, reject) => {
-          geocoder.location({
-            lat: merchantData.latitude,
-            lng: merchantData.longitude
-          }, (err: any, data: any) => {
-            if (err) reject(err);
-            else resolve(data);
-          });
-        });
+        if (!response.ok) {
+          throw new Error(`Geocoding API error: ${response.statusText}`);
+        }
 
-        country = geoData?.results?.[0]?.address_components?.find(
-          (component: any) => component.types.includes('country')
-        )?.long_name || '';
+        const data = await response.json();
+
+        if (data.status === 'OK' && data.results && data.results.length > 0) {
+          // Find the country component in the results
+          for (const result of data.results) {
+            for (const component of result.address_components) {
+              if (component.types.includes('country')) {
+                country = component.long_name;
+                break;
+              }
+            }
+            if (country) break;
+          }
+        } else {
+          console.warn('No results from Geocoding API:', data.status);
+        }
       } catch (error) {
         console.error('Error getting country from coordinates:', error);
         // Continue with empty country if geocoding fails
@@ -81,7 +88,7 @@ Created at: ${new Date().toISOString()}
           title: merchantData.name,
           body: issueBody,
           labels: [
-            `country:${country.toLowerCase()}`,
+            ...(country ? [`country:${country.toLowerCase()}`] : []),
             'good first issue',
             'help wanted',
             'location-submission'
