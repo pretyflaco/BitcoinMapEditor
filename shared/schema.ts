@@ -12,6 +12,7 @@ export const insertMerchantSchema = z.object({
   ).optional(),
   website: z.string().url().optional().or(z.literal('')),
   phone: z.string().regex(/^\+?[\d\s-]+$/).optional().or(z.literal('')),
+  openingHours: z.string().optional().or(z.literal('')),
   twitterMerchant: z.string().optional(),
   twitterSubmitter: z.string().optional(),
   notes: z.string().optional(),

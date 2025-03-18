@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { insertMerchantSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { request, gql } from 'graphql-request';
+import reverseGeocoding from 'reverse-geocoding';
 
 const BLINK_API = 'https://api.blink.sv/graphql';
 const BITCOIN_JUNGLE_API = 'https://api.mainnet.bitcoinjungle.app/graphql';
@@ -19,10 +20,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const merchantData = insertMerchantSchema.parse(req.body);
 
+      // Get country from coordinates
+      const geoData = await new Promise((resolve, reject) => {
+        reverseGeocoding.location({
+          latitude: merchantData.latitude,
+          longitude: merchantData.longitude,
+          key: 'AIzaSyBpzP5RTtQKVxGkzxH9IjigqPrVG3ucLLM'
+        }, (err: any, data: any) => {
+          if (err) reject(err);
+          else resolve(data);
+        });
+      });
+
+      const country = geoData?.results?.[0]?.address_components?.find(
+        (component: any) => component.types.includes('country')
+      )?.long_name || '';
+
       // Format the issue body according to the specified template
       const issueBody = `
 Merchant name: ${merchantData.name}
-Country: ${merchantData.country || ''}
+Country: ${country}
 Communities:
 Address: ${merchantData.address || ''}
 Lat: ${merchantData.latitude}
@@ -37,7 +54,6 @@ Twitter merchant: ${merchantData.twitterMerchant || ''}
 Twitter submitter: ${merchantData.twitterSubmitter || ''}
 Notes: ${merchantData.notes || ''}
 Data Source: ${merchantData.dataSource || 'User Submission'}
-Details (if applicable): ${merchantData.details || ''}
 Contact: ${merchantData.contact || ''}
 Status: Todo
 Created at: ${new Date().toISOString()}
@@ -52,9 +68,14 @@ Created at: ${new Date().toISOString()}
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          title: `New Merchant Suggestion: ${merchantData.name}`,
+          title: merchantData.name,
           body: issueBody,
-          labels: ['merchant-suggestion']
+          labels: [
+            `country:${country.toLowerCase()}`,
+            'good first issue',
+            'help wanted',
+            'location-submission'
+          ]
         })
       });
 

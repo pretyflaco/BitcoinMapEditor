@@ -401,6 +401,21 @@ export default function Home() {
                         )}
                       />
 
+                      {/* Added Opening Hours Field */}
+                      <FormField
+                        control={merchantForm.control}
+                        name="openingHours"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Opening Hours (optional)</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="Mo-Fr 08:00-20:00" />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+
+
                       <FormField
                         control={merchantForm.control}
                         name="twitterMerchant"
