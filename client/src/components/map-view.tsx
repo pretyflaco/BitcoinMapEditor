@@ -344,9 +344,12 @@ function MapLayer() {
 }
 
 // Create custom icon definitions
-const createCustomIcon = (type: 'btcmap' | 'default') => {
+const createCustomIcon = (type: 'btcmap' | 'blink' | 'default') => {
   let color: string;
   switch (type) {
+    case 'blink':
+      color = '#FB5607'; // orange
+      break;
     case 'btcmap':
       color = '#0891B2'; // cyan
       break;
@@ -363,6 +366,7 @@ const createCustomIcon = (type: 'btcmap' | 'default') => {
   });
 };
 
+const blinkIcon = createCustomIcon('blink');
 const btcmapIcon = createCustomIcon('btcmap');
 const defaultIcon = createCustomIcon('default');
 
@@ -474,7 +478,7 @@ function MerchantMarkers() {
     const cellLngSize = lngSpan / GRID_SIZE;
     const grid: Array<{
       merchant: any;
-      source: 'btcmap';
+      source: 'btcmap' | 'blink';
       cell: string;
     }> = [];
 
@@ -493,9 +497,10 @@ function MerchantMarkers() {
       });
     }
 
+
     // Find new markers that aren't already on the map
     const newMarkers = grid.filter(item => {
-      const id = `btcmap-${item.merchant.id}`;
+      const id = item.source === 'btcmap' ? `btcmap-${item.merchant.id}` : `blink-${item.merchant.id}`;
       return !markersRef.has(id);
     });
 
@@ -504,24 +509,25 @@ function MerchantMarkers() {
       if (!acc[item.cell]) {
         acc[item.cell] = {
           btcmap: [],
+          blink: []
         };
       }
       acc[item.cell][item.source].push(item);
       return acc;
-    }, {} as Record<string, Record<'btcmap', typeof grid>>);
+    }, {} as Record<string, { btcmap: typeof newMarkers; blink: typeof newMarkers }>);
 
     // Add new markers up to the limit
     let addedCount = 0;
-    const maxPerSource = Math.floor(MAX_NEW_MARKERS);
+    const maxPerSource = Math.floor(MAX_NEW_MARKERS / 2); // Distribute markers evenly
     const maxPerCellPerSource = Math.ceil(maxPerSource / (GRID_SIZE * GRID_SIZE));
 
     Object.values(newMarkersGroups).forEach(cellSources => {
       if (addedCount >= MAX_NEW_MARKERS) return;
 
-      ['btcmap'].forEach(source => {
+      ['btcmap', 'blink'].forEach(source => {
         if (addedCount >= MAX_NEW_MARKERS) return;
 
-        const markers = cellSources[source as 'btcmap'];
+        const markers = cellSources[source];
         if (markers.length === 0) return;
 
         const take = Math.min(maxPerCellPerSource, MAX_NEW_MARKERS - addedCount, markers.length);
@@ -529,80 +535,117 @@ function MerchantMarkers() {
 
         for (let i = 0; i < markers.length && addedCount < MAX_NEW_MARKERS; i += step) {
           const { merchant } = markers[i];
-          const lat = merchant.osm_json?.lat;
-          const lng = merchant.osm_json?.lon;
-          const id = `btcmap-${merchant.id}`;
-          const tags = merchant.osm_json?.tags ?? {};
-          const name = tags.name ?? 'Unknown Merchant';
+          let lat: number, lng: number, id: string, name: string, details: string, icon: L.Icon;
 
-          // Helper function to safely access address components
-          const getAddress = () => {
-            const components = [
-              tags['addr:street'],
-              tags['addr:housenumber'],
-              tags['addr:city'],
-              tags['addr:country']
-            ];
-            return components.filter(Boolean).join(', ');
-          };
+          if (source === 'btcmap') {
+            lat = merchant.osm_json?.lat;
+            lng = merchant.osm_json?.lon;
+            id = `btcmap-${merchant.id}`;
+            const tags = merchant.osm_json?.tags ?? {};
+            name = tags.name ?? 'Unknown Merchant';
 
-          // Helper function to safely get payment status
-          const getPaymentStatus = (method: string) => {
-            return tags[`payment:${method}`] === 'yes';
-          };
+            // Helper function to safely access address components
+            const getAddress = () => {
+              const components = [
+                tags['addr:street'],
+                tags['addr:housenumber'],
+                tags['addr:city'],
+                tags['addr:country']
+              ];
+              return components.filter(Boolean).join(', ');
+            };
 
-          const address = getAddress();
-          const phone = tags.phone ?? tags['contact:phone'];
-          const website = tags.website ?? tags['contact:website'];
-          const type = tags.amenity ?? tags.shop ?? tags.tourism ?? tags.leisure ?? 'Other';
-          const openingHours = tags['opening_hours'];
-          const surveyDate = tags['survey:date'];
+            // Helper function to safely get payment status
+            const getPaymentStatus = (method: string) => {
+              return tags[`payment:${method}`] === 'yes';
+            };
 
-          const details = `
-            <div class="text-center min-w-[280px]">
-              <img
-                src="https://btcmap.org/images/logo.svg"
-                alt="BTCMap Logo"
-                class="w-12 h-12 mx-auto mb-2 object-contain"
-              />
-              <strong>${name}</strong><br/>
-              <em>${type}</em><br/>
-              ${address ? `📍 ${address}<br/>` : ''}
-              ${phone ? `📞 ${phone}<br/>` : ''}
-              ${website ? `🌐 <a href="${website}" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">${website}</a><br/>` : ''}
-              ${openingHours ? `⏰ ${openingHours}<br/>` : ''}
-              ${surveyDate ? `📅 Last surveyed: ${surveyDate}<br/>` : ''}
-              <div class="flex justify-between items-center mt-2">
-                <div class="flex gap-2">
-                  <img
-                    src="https://btcmap.org/icons/${getPaymentStatus('bitcoin') ? 'btc-primary' : 'btc'}.svg"
-                    alt="Bitcoin payments"
-                    class="w-6 h-6"
-                  />
-                  <img
-                    src="https://btcmap.org/icons/${getPaymentStatus('lightning') ? 'ln-primary' : 'ln-no'}.svg"
-                    alt="Lightning payments"
-                    class="w-6 h-6"
-                  />
-                  <img
-                    src="https://btcmap.org/icons/${getPaymentStatus('contactless') ? 'nfc-primary' : 'nfc-no'}.svg"
-                    alt="Contactless payments"
-                    class="w-6 h-6"
-                  />
+            const address = getAddress();
+            const phone = tags.phone ?? tags['contact:phone'];
+            const website = tags.website ?? tags['contact:website'];
+            const type = tags.amenity ?? tags.shop ?? tags.tourism ?? tags.leisure ?? 'Other';
+            const openingHours = tags['opening_hours'];
+            const surveyDate = tags['survey:date'];
+
+            details = `
+              <div class="text-center min-w-[280px]">
+                <img
+                  src="https://btcmap.org/images/logo.svg"
+                  alt="BTCMap Logo"
+                  class="w-12 h-12 mx-auto mb-2 object-contain"
+                />
+                <strong>${name}</strong><br/>
+                <em>${type}</em><br/>
+                ${address ? `📍 ${address}<br/>` : ''}
+                ${phone ? `📞 ${phone}<br/>` : ''}
+                ${website ? `🌐 <a href="${website}" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">${website}</a><br/>` : ''}
+                ${openingHours ? `⏰ ${openingHours}<br/>` : ''}
+                ${surveyDate ? `📅 Last surveyed: ${surveyDate}<br/>` : ''}
+                <div class="flex justify-between items-center mt-2">
+                  <div class="flex gap-2">
+                    <img
+                      src="https://btcmap.org/icons/${getPaymentStatus('bitcoin') ? 'btc-primary' : 'btc'}.svg"
+                      alt="Bitcoin payments"
+                      class="w-6 h-6"
+                    />
+                    <img
+                      src="https://btcmap.org/icons/${getPaymentStatus('lightning') ? 'ln-primary' : 'ln-no'}.svg"
+                      alt="Lightning payments"
+                      class="w-6 h-6"
+                    />
+                    <img
+                      src="https://btcmap.org/icons/${getPaymentStatus('contactless') ? 'nfc-primary' : 'nfc-no'}.svg"
+                      alt="Contactless payments"
+                      class="w-6 h-6"
+                    />
+                  </div>
+                  <a href="javascript:void(0)"
+                     onclick="window.location.href = '${getNavigationUrl(lat, lng)}'"
+                     class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white hover:bg-gray-100">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
+                      <circle cx="12" cy="10" r="3"/>
+                    </svg>
+                  </a>
                 </div>
-                <a href="javascript:void(0)"
-                   onclick="window.location.href = '${getNavigationUrl(lat, lng)}'"
-                   class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white hover:bg-gray-100">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
-                    <circle cx="12" cy="10" r="3"/>
-                  </svg>
-                </a>
-              </div>
-            </div>`;
+              </div>`;
+            icon = btcmapIcon;
+          } else { //source === 'blink'
+            lat = merchant.latitude;
+            lng = merchant.longitude;
+            id = `blink-${merchant.id}`;
+            name = merchant.title || 'Unknown Merchant';
+            details = `
+              <div class="text-center min-w-[280px]">
+                <img
+                  src="/images/blink.png"
+                  alt="Blink Logo"
+                  class="w-12 h-12 mx-auto mb-2 object-contain"
+                />
+                <strong>${name}</strong><br/>
+                <div class="flex justify-between items-center mt-2">
+                  <div class="flex gap-2">
+                    <img
+                      src="https://btcmap.org/icons/ln-primary.svg"
+                      alt="Lightning Network enabled"
+                      class="w-6 h-6"
+                    />
+                  </div>
+                  <a href="javascript:void(0)"
+                     onclick="window.location.href = '${getNavigationUrl(lat, lng)}'"
+                     class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white hover:bg-gray-100">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
+                      <circle cx="12" cy="10" r="3"/>
+                    </svg>
+                  </a>
+                </div>
+              </div>`;
+            icon = blinkIcon;
+          }
 
           if (!markersRef.has(id) && lat && lng) {
-            const marker = L.marker([lat, lng], { icon: btcmapIcon })
+            const marker = L.marker([lat, lng], { icon })
               .bindPopup(details)
               .addTo(map);
             markersRef.set(id, marker);
@@ -615,7 +658,7 @@ function MerchantMarkers() {
     // After adding new markers, check if we need to remove distant ones
     removeDistantMarkers();
 
-  }, [map, btcMapMerchants, theme, removeDistantMarkers]);
+  }, [map, btcMapMerchants, theme, removeDistantMarkers, btcmapIcon, blinkIcon]);
 
   useEffect(() => {
     if (!map) return;

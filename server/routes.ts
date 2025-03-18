@@ -124,6 +124,7 @@ Created at: ${new Date().toISOString()}
 
   app.get("/api/merchants", async (_req, res) => {
     try {
+      // Fetch BTCMap merchants
       const btcMapResponse = await fetch("https://api.btcmap.org/v2/elements", {
         headers: {
           'Accept': 'application/json',
@@ -137,8 +138,37 @@ Created at: ${new Date().toISOString()}
 
       const btcMapData = await btcMapResponse.json();
 
-      // For now, return only BTCMap data as we have disabled Blink API integration
-      const { mergedMerchants, stats } = deduplication.mergeMerchants(btcMapData, []);
+      // Fetch Blink merchants
+      const blinkQuery = gql`
+        query GetBusinessMapMarkers {
+          businessMapMarkers {
+            username
+            mapInfo {
+              coordinates {
+                latitude
+                longitude
+              }
+              title
+            }
+          }
+        }
+      `;
+
+      const blinkData = await request(
+        BLINK_API,
+        blinkQuery,
+        {},
+        {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      );
+
+      // Process and merge merchants using deduplication
+      const { mergedMerchants, stats } = deduplication.mergeMerchants(
+        btcMapData,
+        blinkData?.businessMapMarkers || []
+      );
 
       console.log('Merchant processing stats:', stats);
 
