@@ -7,16 +7,20 @@ export const insertMerchantSchema = z.object({
   latitude: z.coerce.number().min(-90).max(90),
   longitude: z.coerce.number().min(-180).max(180),
   type: z.string(),
-  paymentMethods: z.array(z.string()).optional(),
+  paymentMethods: z.array(
+    z.enum(["onchain", "lightning", "lightning_contactless"])
+  ).optional(),
   website: z.string().url().optional(),
   phone: z.string().regex(/^\+?[\d\s-]+$/).optional(),
-  openingHours: z.string().optional(),
   twitterMerchant: z.string().optional(),
   twitterSubmitter: z.string().optional(),
   notes: z.string().optional(),
-  dataSource: z.string().optional(),
-  details: z.string().optional(),
-  contact: z.string().optional(),
+  dataSource: z.enum([
+    "I am the business owner",
+    "I visited as a customer",
+    "Other method"
+  ]).optional(),
+  contact: z.string().email("Invalid email format").optional(),
 });
 
 export type InsertMerchant = z.infer<typeof insertMerchantSchema>;
