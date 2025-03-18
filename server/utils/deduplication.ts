@@ -55,10 +55,10 @@ export class MerchantDeduplication {
   private calculateNameSimilarity(name1: string, name2: string): number {
     const processedName1 = name1.toLowerCase().trim();
     const processedName2 = name2.toLowerCase().trim();
-    
+
     const maxLength = Math.max(processedName1.length, processedName2.length);
     if (maxLength === 0) return 1; // Both empty strings are considered identical
-    
+
     const distance = this.levenshteinDistance(processedName1, processedName2);
     return 1 - distance / maxLength;
   }
@@ -74,7 +74,7 @@ export class MerchantDeduplication {
     const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
               Math.cos(φ1) * Math.cos(φ2) *
               Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-    
+
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   }
@@ -108,89 +108,6 @@ export class MerchantDeduplication {
     };
   }
 
-  // Process merchants and identify duplicates
-  public processMerchants(merchants: Merchant[]): {
-    uniqueMerchants: Merchant[];
-    duplicates: Array<{
-      merchant1: Merchant;
-      merchant2: Merchant;
-      nameSimilarity: number;
-      distance: number;
-    }>;
-  } {
-    const uniqueMerchants: Merchant[] = [];
-    const duplicates: Array<{
-      merchant1: Merchant;
-      merchant2: Merchant;
-      nameSimilarity: number;
-      distance: number;
-    }> = [];
-
-    // Create a grid system for spatial indexing
-    const gridSize = this.distanceThreshold; // Use distance threshold as grid size
-    const grid: Map<string, Merchant[]> = new Map();
-
-    // Helper function to get grid cell key
-    const getGridKey = (lat: number, lon: number): string => {
-      const latGrid = Math.floor(lat / gridSize);
-      const lonGrid = Math.floor(lon / gridSize);
-      return `${latGrid},${lonGrid}`;
-    };
-
-    // Helper function to get neighboring grid cells
-    const getNeighboringCells = (lat: number, lon: number): string[] => {
-      const centerKey = getGridKey(lat, lon);
-      const [centerLat, centerLon] = centerKey.split(',').map(Number);
-      
-      const neighbors: string[] = [];
-      for (let i = -1; i <= 1; i++) {
-        for (let j = -1; j <= 1; j++) {
-          neighbors.push(`${centerLat + i},${centerLon + j}`);
-        }
-      }
-      return neighbors;
-    };
-
-    // Process each merchant
-    for (const merchant of merchants) {
-      let isDuplicate = false;
-      const neighboringCells = getNeighboringCells(merchant.latitude, merchant.longitude);
-
-      // Check against merchants in neighboring cells
-      for (const cellKey of neighboringCells) {
-        const cellMerchants = grid.get(cellKey) || [];
-        for (const existingMerchant of cellMerchants) {
-          const result = this.arePotentialDuplicates(merchant, existingMerchant);
-          if (result.isDuplicate) {
-            isDuplicate = true;
-            duplicates.push({
-              merchant1: existingMerchant,
-              merchant2: merchant,
-              nameSimilarity: result.nameSimilarity,
-              distance: result.distance
-            });
-            break;
-          }
-        }
-        if (isDuplicate) break;
-      }
-
-      if (!isDuplicate) {
-        // Add to unique merchants and grid
-        uniqueMerchants.push(merchant);
-        const gridKey = getGridKey(merchant.latitude, merchant.longitude);
-        const cellMerchants = grid.get(gridKey) || [];
-        cellMerchants.push(merchant);
-        grid.set(gridKey, cellMerchants);
-      }
-    }
-
-    return {
-      uniqueMerchants,
-      duplicates
-    };
-  }
-
   // Merge duplicate merchants
   public mergeMerchants(btcMapMerchants: any[], blinkMerchants: any[]): {
     mergedMerchants: Merchant[];
@@ -213,7 +130,7 @@ export class MerchantDeduplication {
         originalData: m
       }));
 
-    // Convert Blink merchants to standard format
+    // Update the standardization of Blink merchants
     const standardizedBlink: Merchant[] = blinkMerchants
       .filter(m => m.mapInfo?.coordinates?.latitude && m.mapInfo?.coordinates?.longitude && m.mapInfo?.title)
       .map(m => ({
@@ -225,20 +142,42 @@ export class MerchantDeduplication {
         originalData: m
       }));
 
-    // Process all merchants
-    const { uniqueMerchants, duplicates } = this.processMerchants([
-      ...standardizedBtcMap,
-      ...standardizedBlink
-    ]);
+    // Keep track of which Blink merchants are duplicates
+    const duplicateBlinkIds = new Set<string>();
+
+    // First, add all BTCMap merchants to the result
+    const mergedMerchants = [...standardizedBtcMap];
+
+    // Then check each Blink merchant against existing BTCMap merchants
+    standardizedBlink.forEach(blinkMerchant => {
+      let isDuplicate = false;
+
+      for (const btcMapMerchant of standardizedBtcMap) {
+        const result = this.arePotentialDuplicates(blinkMerchant, btcMapMerchant);
+        if (result.isDuplicate) {
+          isDuplicate = true;
+          duplicateBlinkIds.add(blinkMerchant.id);
+          break;
+        }
+      }
+
+      // If not a duplicate, add to merged results
+      if (!isDuplicate) {
+        mergedMerchants.push(blinkMerchant);
+      }
+    });
+
+    // Calculate statistics
+    const stats = {
+      totalBtcMap: standardizedBtcMap.length,
+      totalBlink: standardizedBlink.length,
+      duplicatesFound: duplicateBlinkIds.size,
+      newMerchantsAdded: standardizedBlink.length - duplicateBlinkIds.size
+    };
 
     return {
-      mergedMerchants: uniqueMerchants,
-      stats: {
-        totalBtcMap: standardizedBtcMap.length,
-        totalBlink: standardizedBlink.length,
-        duplicatesFound: duplicates.length,
-        newMerchantsAdded: uniqueMerchants.length - standardizedBtcMap.length
-      }
+      mergedMerchants,
+      stats
     };
   }
 }
