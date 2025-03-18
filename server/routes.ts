@@ -16,6 +16,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ status: "ok" });
   });
 
+  // Updated /api/merchants endpoint to aggregate data from all sources
+  app.get("/api/merchants", async (_req, res) => {
+    try {
+      // Fetch data from all sources in parallel
+      const [btcMapResponse, blinkResponse, bitcoinJungleResponse] = await Promise.allSettled([
+        fetch("https://api.btcmap.org/v2/elements", {
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'BTCMap-Frontend/1.0'
+          }
+        }),
+        request(
+          BLINK_API,
+          gql`
+            query GetBusinessMapMarkers {
+              businessMapMarkers {
+                username
+                mapInfo {
+                  coordinates {
+                    latitude
+                    longitude
+                  }
+                  title
+                }
+              }
+            }
+          `,
+          {},
+          {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        ),
+        fetch('https://maps.bitcoinjungle.app/api/list', {
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        })
+      ]);
+
+      // Process BTCMap data
+      let btcMapData = [];
+      if (btcMapResponse.status === 'fulfilled' && btcMapResponse.value.ok) {
+        btcMapData = await btcMapResponse.value.json();
+      }
+
+      // Process Blink data
+      let blinkData = [];
+      if (blinkResponse.status === 'fulfilled') {
+        blinkData = blinkResponse.value.businessMapMarkers || [];
+      }
+
+      // Process Bitcoin Jungle data
+      let bitcoinJungleData = [];
+      if (bitcoinJungleResponse.status === 'fulfilled' && bitcoinJungleResponse.value.ok) {
+        const response = await bitcoinJungleResponse.value.json();
+        bitcoinJungleData = response.locations || [];
+      }
+
+      // Return combined data
+      res.json({
+        btcmap: btcMapData,
+        blink: blinkData,
+        bitcoinjungle: bitcoinJungleData
+      });
+
+    } catch (error) {
+      console.error('Error fetching merchants:', error);
+      res.status(500).json({ 
+        message: "Failed to fetch merchants",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   app.post("/api/merchants", async (req, res) => {
     try {
       const merchantData = insertMerchantSchema.parse(req.body);
@@ -112,17 +188,6 @@ Created at: ${new Date().toISOString()}
       } else {
         res.status(500).json({ message: "Failed to submit merchant suggestion" });
       }
-    }
-  });
-
-  // Keep the rest of the routes unchanged
-  app.get("/api/merchants", async (_req, res) => {
-    try {
-      //This route is not implemented in edited code, leaving it as is.
-      res.status(500).json({ message: "Not implemented" });
-
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch merchants" });
     }
   });
 

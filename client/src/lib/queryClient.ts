@@ -1,4 +1,5 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { cacheService } from "./cacheService";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -29,16 +30,52 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey[0] as string, {
-      credentials: "include",
-    });
+    const url = queryKey[0] as string;
+    const source = url.split('/').pop() as 'btcmap' | 'blink' | 'bitcoinjungle';
 
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      return null;
+    try {
+      // Initialize cache service if not already initialized
+      if (!cacheService.db) {
+        await cacheService.init();
+      }
+
+      // Check if we have cached data and if it's still fresh
+      if (!await cacheService.isCacheStale()) {
+        const cachedData = await cacheService.getData(source);
+        if (cachedData && cachedData.length > 0) {
+          console.log(`Using cached ${source} data:`, cachedData.length, 'items');
+          return cachedData;
+        }
+      }
+
+      // If cache is stale or empty, fetch from API
+      const res = await fetch(url, {
+        credentials: "include",
+      });
+
+      if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+        return null;
+      }
+
+      await throwIfResNotOk(res);
+      const data = await res.json();
+
+      // Update cache with new data
+      await cacheService.syncData(source, data);
+
+      return data;
+    } catch (error) {
+      console.error(`Error fetching ${source} data:`, error);
+
+      // If offline or API error, try to return cached data as fallback
+      const cachedData = await cacheService.getData(source);
+      if (cachedData && cachedData.length > 0) {
+        console.log(`Falling back to cached ${source} data:`, cachedData.length, 'items');
+        return cachedData;
+      }
+
+      throw error;
     }
-
-    await throwIfResNotOk(res);
-    return await res.json();
   };
 
 export const queryClient = new QueryClient({
