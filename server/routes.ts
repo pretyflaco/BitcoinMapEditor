@@ -1,14 +1,21 @@
-import type { Express } from "express";
+import { Express } from "express";
 import { createServer, type Server } from "http";
 import { insertMerchantSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { request, gql } from 'graphql-request';
 import { ZodError } from "zod";
+import { MerchantDeduplication } from './utils/deduplication';
 
 const BLINK_API = 'https://api.blink.sv/graphql';
 const BITCOIN_JUNGLE_API = 'https://api.mainnet.bitcoinjungle.app/graphql';
 const GITHUB_TOKEN = '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';
 const GITHUB_REPO = 'pretyflaco/BitcoinMapEditor';
+
+// Create a singleton instance of MerchantDeduplication
+const deduplication = new MerchantDeduplication({
+  nameSimilarityThreshold: 0.8,
+  distanceThreshold: 100
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Add a status endpoint to verify server is running
@@ -115,13 +122,29 @@ Created at: ${new Date().toISOString()}
     }
   });
 
-  // Keep the rest of the routes unchanged
   app.get("/api/merchants", async (_req, res) => {
     try {
-      //This route is not implemented in edited code, leaving it as is.
-      res.status(500).json({ message: "Not implemented" });
+      const btcMapResponse = await fetch("https://api.btcmap.org/v2/elements", {
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'BTCMap-Frontend/1.0'
+        }
+      });
 
+      if (!btcMapResponse.ok) {
+        throw new Error(`BTCMap API error: ${btcMapResponse.statusText}`);
+      }
+
+      const btcMapData = await btcMapResponse.json();
+
+      // For now, return only BTCMap data as we have disabled Blink API integration
+      const { mergedMerchants, stats } = deduplication.mergeMerchants(btcMapData, []);
+
+      console.log('Merchant processing stats:', stats);
+
+      res.json(mergedMerchants);
     } catch (error) {
+      console.error('Error fetching merchants:', error);
       res.status(500).json({ message: "Failed to fetch merchants" });
     }
   });
