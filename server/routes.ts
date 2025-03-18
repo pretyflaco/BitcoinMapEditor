@@ -16,6 +16,46 @@ const BTCMAP_API = 'https://api.btcmap.org/v2';
 const DEFAULT_SYNC_DAYS = 365 * 2; // Sync last 2 years by default for first sync
 const ELEMENTS_PER_PAGE = 1000; // Increase page size for faster syncing
 
+async function fetchBTCMapElements(updatedSince: Date): Promise<any[]> {
+  let allElements: any[] = [];
+  let hasMore = true;
+  let offset = 0;
+
+  while (hasMore) {
+    try {
+      console.log(`Fetching BTCMap elements from offset ${offset}...`);
+      const response = await fetch(
+        `${BTCMAP_API}/elements?updated_since=${updatedSince.toISOString()}&limit=${ELEMENTS_PER_PAGE}&offset=${offset}`,
+        {
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'BTCMap-Frontend/1.0'
+          }
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`BTCMap API error: ${response.statusText}`);
+      }
+
+      const elements = await response.json();
+
+      if (elements.length === 0) {
+        hasMore = false;
+      } else {
+        allElements = allElements.concat(elements);
+        offset += elements.length;
+        console.log(`Fetched ${elements.length} elements, total: ${allElements.length}`);
+      }
+    } catch (error) {
+      console.error('Error fetching BTCMap elements:', error);
+      hasMore = false;
+    }
+  }
+
+  return allElements;
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Add a status endpoint to verify server is running
   app.get("/api/status", (_req, res) => {
@@ -129,46 +169,6 @@ Created at: ${new Date().toISOString()}
     }
   });
 
-  async function fetchBTCMapElements(updatedSince: Date): Promise<any[]> {
-    let allElements: any[] = [];
-    let hasMore = true;
-    let offset = 0;
-
-    while (hasMore) {
-      try {
-        console.log(`Fetching BTCMap elements from offset ${offset}...`);
-        const response = await fetch(
-          `${BTCMAP_API}/elements?updated_since=${updatedSince.toISOString()}&limit=${ELEMENTS_PER_PAGE}&offset=${offset}`,
-          {
-            headers: {
-              'Accept': 'application/json',
-              'User-Agent': 'BTCMap-Frontend/1.0'
-            }
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error(`BTCMap API error: ${response.statusText}`);
-        }
-
-        const elements = await response.json();
-
-        if (elements.length === 0) {
-          hasMore = false;
-        } else {
-          allElements = allElements.concat(elements);
-          offset += elements.length;
-          console.log(`Fetched ${elements.length} elements, total: ${allElements.length}`);
-        }
-      } catch (error) {
-        console.error('Error fetching BTCMap elements:', error);
-        hasMore = false;
-      }
-    }
-
-    return allElements;
-  }
-
   app.get("/api/btcmap/merchants", async (_req, res) => {
     try {
       // Get the most recent synced element
@@ -220,6 +220,11 @@ Created at: ${new Date().toISOString()}
         .orderBy(desc(btcmapElements.updatedAt));
 
       console.log(`Returning ${cachedElements.length} cached elements`);
+
+      // Log sample data to verify format
+      if (cachedElements.length > 0) {
+        console.log('Sample cached element:', JSON.stringify(cachedElements[0], null, 2));
+      }
 
       res.json(cachedElements.map(el => ({
         id: el.elementId,
