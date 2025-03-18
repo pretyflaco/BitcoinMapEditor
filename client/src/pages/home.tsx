@@ -51,17 +51,16 @@ export default function Home() {
     defaultValues: {
       name: "",
       address: "",
-      description: "",
-      type: "shop",
+      type: "",
       latitude: selectedLocation?.lat || 0,
       longitude: selectedLocation?.lng || 0,
-      paymentMethods: [], // Initialize paymentMethods as an array
+      paymentMethods: [],
       website: "",
       phone: "",
       twitterMerchant: "",
       twitterSubmitter: "",
       notes: "",
-      dataSource: "",
+      dataSource: undefined,
       contact: ""
     }
   });
