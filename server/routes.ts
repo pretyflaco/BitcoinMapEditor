@@ -13,8 +13,8 @@ const GITHUB_TOKEN = 'github_pat_11AH3ONFY0u7Zg3CiLkF2H_1TfHuwRfDHeuj1irx2TKgHM8
 const GITHUB_REPO = 'pretyflaco/BitcoinMapEditor';
 
 const BTCMAP_API = 'https://api.btcmap.org/v2';
-const DEFAULT_SYNC_DAYS = 7; // Sync last 7 days by default
-const ELEMENTS_PER_PAGE = 100;
+const DEFAULT_SYNC_DAYS = 365 * 2; // Sync last 2 years by default for first sync
+const ELEMENTS_PER_PAGE = 1000; // Increase page size for faster syncing
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Add a status endpoint to verify server is running
@@ -124,11 +124,50 @@ Created at: ${new Date().toISOString()}
   app.get("/api/merchants", async (_req, res) => {
     try {
       res.status(500).json({ message: "Not implemented" });
-
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch merchants" });
     }
   });
+
+  async function fetchBTCMapElements(updatedSince: Date): Promise<any[]> {
+    let allElements: any[] = [];
+    let hasMore = true;
+    let offset = 0;
+
+    while (hasMore) {
+      try {
+        console.log(`Fetching BTCMap elements from offset ${offset}...`);
+        const response = await fetch(
+          `${BTCMAP_API}/elements?updated_since=${updatedSince.toISOString()}&limit=${ELEMENTS_PER_PAGE}&offset=${offset}`,
+          {
+            headers: {
+              'Accept': 'application/json',
+              'User-Agent': 'BTCMap-Frontend/1.0'
+            }
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`BTCMap API error: ${response.statusText}`);
+        }
+
+        const elements = await response.json();
+
+        if (elements.length === 0) {
+          hasMore = false;
+        } else {
+          allElements = allElements.concat(elements);
+          offset += elements.length;
+          console.log(`Fetched ${elements.length} elements, total: ${allElements.length}`);
+        }
+      } catch (error) {
+        console.error('Error fetching BTCMap elements:', error);
+        hasMore = false;
+      }
+    }
+
+    return allElements;
+  }
 
   app.get("/api/btcmap/merchants", async (_req, res) => {
     try {
@@ -138,52 +177,49 @@ Created at: ${new Date().toISOString()}
         .orderBy(desc(btcmapElements.updatedAt))
         .limit(1);
 
-      // Default to 7 days ago if no previous sync
+      // If no previous sync, get last 2 years of data
       const updatedSince = lastSynced[0]?.updatedAt || 
         new Date(Date.now() - (DEFAULT_SYNC_DAYS * 24 * 60 * 60 * 1000));
 
       console.log('Fetching BTCMap elements updated since:', updatedSince.toISOString());
 
-      // Fetch updates from BTCMap API
-      const response = await fetch(
-        `${BTCMAP_API}/elements?updated_since=${updatedSince.toISOString()}&limit=${ELEMENTS_PER_PAGE}`,
-        {
-          headers: {
-            'Accept': 'application/json',
-            'User-Agent': 'BTCMap-Frontend/1.0'
-          }
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`BTCMap API error: ${response.statusText}`);
-      }
-
-      const newElements = await response.json();
+      // Fetch all elements since last sync
+      const newElements = await fetchBTCMapElements(updatedSince);
+      console.log(`Total elements fetched: ${newElements.length}`);
 
       // Update cache with new/updated elements
+      let updatedCount = 0;
       for (const element of newElements) {
-        await db.insert(btcmapElements)
-          .values({
-            elementId: element.id,
-            osmData: element.osm_json,
-            updatedAt: new Date(element.updated_at),
-            syncedAt: new Date()
-          })
-          .onConflictDoUpdate({
-            target: btcmapElements.elementId,
-            set: {
+        try {
+          await db.insert(btcmapElements)
+            .values({
+              elementId: element.id,
               osmData: element.osm_json,
               updatedAt: new Date(element.updated_at),
               syncedAt: new Date()
-            }
-          });
+            })
+            .onConflictDoUpdate({
+              target: btcmapElements.elementId,
+              set: {
+                osmData: element.osm_json,
+                updatedAt: new Date(element.updated_at),
+                syncedAt: new Date()
+              }
+            });
+          updatedCount++;
+        } catch (error) {
+          console.error(`Error updating element ${element.id}:`, error);
+        }
       }
+
+      console.log(`Updated ${updatedCount} elements in cache`);
 
       // Return all cached elements
       const cachedElements = await db.select()
         .from(btcmapElements)
         .orderBy(desc(btcmapElements.updatedAt));
+
+      console.log(`Returning ${cachedElements.length} cached elements`);
 
       res.json(cachedElements.map(el => ({
         id: el.elementId,
