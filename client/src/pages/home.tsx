@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { Plus, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Form, FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { insertMerchantSchema } from "@shared/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -262,6 +262,7 @@ export default function Home() {
                             <FormControl>
                               <Input {...field} placeholder="Satoshi's Comics" />
                             </FormControl>
+                            <FormMessage />
                           </FormItem>
                         )}
                       />
@@ -287,6 +288,7 @@ export default function Home() {
                                   }}
                                 />
                               </FormControl>
+                              <FormMessage />
                             </FormItem>
                           )}
                         />
@@ -311,6 +313,7 @@ export default function Home() {
                                   }}
                                 />
                               </FormControl>
+                              <FormMessage />
                             </FormItem>
                           )}
                         />
@@ -321,7 +324,7 @@ export default function Home() {
                         name="address"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Address</FormLabel>
+                            <FormLabel>Address (optional)</FormLabel>
                             <FormControl>
                               <Input {...field} placeholder="2100 Freedom Drive..." />
                             </FormControl>
@@ -334,7 +337,7 @@ export default function Home() {
                         name="type"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Category</FormLabel>
+                            <FormLabel>Category (optional)</FormLabel>
                             <FormControl>
                               <Input {...field} placeholder="Restaurant etc." />
                             </FormControl>
@@ -347,7 +350,7 @@ export default function Home() {
                         name="paymentMethods"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Select accepted payment methods</FormLabel>
+                            <FormLabel>Select accepted payment methods (optional)</FormLabel>
                             <div className="flex flex-col gap-2">
                               {["onchain", "lightning", "lightning_contactless"].map((method) => (
                                 <div key={method} className="flex items-center space-x-2">
@@ -399,33 +402,32 @@ export default function Home() {
                         )}
                       />
 
-                      <div className="grid grid-cols-2 gap-4">
-                        <FormField
-                          control={merchantForm.control}
-                          name="twitterMerchant"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>X/Twitter handle (optional)</FormLabel>
+                      <FormField
+                        control={merchantForm.control}
+                        name="twitterMerchant"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="flex justify-between">
+                              X/Twitter handle (optional)
+                              <span className="opacity-0">Placeholder</span>
+                            </FormLabel>
+                            <div className="flex gap-4">
                               <FormControl>
                                 <Input {...field} placeholder="Merchant" />
                               </FormControl>
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={merchantForm.control}
-                          name="twitterSubmitter"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>&nbsp;</FormLabel>
-                              <FormControl>
-                                <Input {...field} placeholder="Submitter" />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-                      </div>
+                              <FormField
+                                control={merchantForm.control}
+                                name="twitterSubmitter"
+                                render={({ field: submitterField }) => (
+                                  <FormControl>
+                                    <Input {...submitterField} placeholder="Submitter" />
+                                  </FormControl>
+                                )}
+                              />
+                            </div>
+                          </FormItem>
+                        )}
+                      />
 
                       <FormField
                         control={merchantForm.control}
@@ -445,7 +447,7 @@ export default function Home() {
                         name="dataSource"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Data Source</FormLabel>
+                            <FormLabel>Data Source (optional)</FormLabel>
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                               <FormControl>
                                 <SelectTrigger>
@@ -467,11 +469,11 @@ export default function Home() {
                         name="contact"
                         render={({ field }) => (
                           <FormItem className="mb-6">
-                            <FormLabel>Public Contact</FormLabel>
+                            <FormLabel>Public Contact (optional)</FormLabel>
                             <FormControl>
                               <Input {...field} type="email" placeholder="hello@btcmap.org" />
                             </FormControl>
-                            <p className="text-sm text-muted-foreground mt-1 break-normal">
+                            <p className="text-sm text-muted-foreground mt-1 break-normal whitespace-normal">
                               If we have any follow-up questions we will contact you in order to add your location successfully. To speed up the process please check your spam folder in case it ends up there.
                             </p>
                           </FormItem>

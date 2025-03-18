@@ -6,7 +6,7 @@ export const insertMerchantSchema = z.object({
   address: z.string().optional(),
   latitude: z.coerce.number().min(-90).max(90),
   longitude: z.coerce.number().min(-180).max(180),
-  type: z.string(),
+  type: z.string().optional(),
   paymentMethods: z.array(
     z.enum(["onchain", "lightning", "lightning_contactless"])
   ).optional(),
