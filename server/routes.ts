@@ -20,9 +20,17 @@ async function fetchBTCMapElements(updatedSince: Date): Promise<any[]> {
   let allElements: any[] = [];
   let hasMore = true;
   let offset = 0;
+  const previousOffsets = new Set<number>();
 
   while (hasMore) {
     try {
+      // Break if we've seen this offset before (prevents infinite loop)
+      if (previousOffsets.has(offset)) {
+        console.log('Breaking loop - duplicate offset detected');
+        break;
+      }
+      previousOffsets.add(offset);
+
       console.log(`Fetching BTCMap elements from offset ${offset}...`);
       const response = await fetch(
         `${BTCMAP_API}/elements?updated_since=${updatedSince.toISOString()}&limit=${ELEMENTS_PER_PAGE}&offset=${offset}`,
@@ -44,7 +52,7 @@ async function fetchBTCMapElements(updatedSince: Date): Promise<any[]> {
         hasMore = false;
       } else {
         allElements = allElements.concat(elements);
-        offset += elements.length;
+        offset += ELEMENTS_PER_PAGE; // Use constant page size instead of variable elements length
         console.log(`Fetched ${elements.length} elements, total: ${allElements.length}`);
       }
     } catch (error) {
