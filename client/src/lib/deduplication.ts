@@ -21,6 +21,13 @@ function cleanMerchantName(name: string): string {
     .replace(/acli/i, 'acli'); // Normalize ACLI/Acli variations
 }
 
+// Helper to check if a merchant is deleted
+function isDeleted(merchant: any): boolean {
+  if (!merchant?.osm_json?.tags) return false;
+  const deletedAt = merchant.osm_json.tags.deleted_at || merchant.deleted_at;
+  return Boolean(deletedAt);
+}
+
 // Calculate Haversine distance between two points in meters
 function calculateDistance(
   lat1: number,
@@ -103,23 +110,31 @@ export function deduplicateMerchants(
   const btcMapGrid: Record<string, any[]> = {};
   const blinkBtcMapMatches: Record<string, string> = {}; // Track matches
 
-  btcMapMerchants
-    .filter(merchant => !merchant.osm_json?.tags?.deleted_at) // Filter out deleted merchants
-    .forEach(merchant => {
-      const lat = merchant.osm_json.lat;
-      const lon = merchant.osm_json.lon;
-      const gridKey = getGridKey(lat, lon);
+  const activeBtcMapMerchants = btcMapMerchants.filter(merchant => !isDeleted(merchant));
 
-      if (!btcMapGrid[gridKey]) {
-        btcMapGrid[gridKey] = [];
-      }
-      btcMapGrid[gridKey].push({
-        name: merchant.osm_json?.tags?.name || '',
-        latitude: lat,
-        longitude: lon,
-        original: merchant
-      });
+  // Log deleted merchants for debugging
+  const deletedMerchants = btcMapMerchants.filter(isDeleted);
+  console.log('Filtered out deleted merchants:', deletedMerchants.map(m => ({
+    id: m.id,
+    name: m.osm_json?.tags?.name,
+    deleted_at: m.osm_json?.tags?.deleted_at || m.deleted_at
+  })));
+
+  activeBtcMapMerchants.forEach(merchant => {
+    const lat = merchant.osm_json.lat;
+    const lon = merchant.osm_json.lon;
+    const gridKey = getGridKey(lat, lon);
+
+    if (!btcMapGrid[gridKey]) {
+      btcMapGrid[gridKey] = [];
+    }
+    btcMapGrid[gridKey].push({
+      name: merchant.osm_json?.tags?.name || '',
+      latitude: lat,
+      longitude: lon,
+      original: merchant
     });
+  });
 
   // Function to check if a merchant is a duplicate
   function isDuplicate(merchant: any, source: 'blink' | 'bitcoinjungle'): boolean {
@@ -174,7 +189,7 @@ export function deduplicateMerchants(
   // Compile statistics
   const stats = {
     totalBTCMap: btcMapMerchants.length,
-    activeBTCMap: btcMapMerchants.filter(m => !m.osm_json?.tags?.deleted_at).length,
+    activeBTCMap: activeBtcMapMerchants.length,
     totalBlink: blinkMerchants.length,
     totalBitcoinJungle: bitcoinJungleMerchants.length,
     uniqueBlink: uniqueBlinkMerchants.length,

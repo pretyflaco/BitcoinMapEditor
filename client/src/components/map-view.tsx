@@ -240,17 +240,19 @@ function MapLayer() {
     }> = [];
 
     // Process BTCMap merchants
-    btcMapMerchants.forEach(merchant => {
-      if (!merchant.osm_json?.lat || !merchant.osm_json?.lon) return;
-      const lat = merchant.osm_json.lat;
-      const lng = merchant.osm_json.lon;
-      if (bounds.contains([lat, lng])) {
-        const cellRow = Math.floor((lat - bounds.getSouth()) / cellLatSize);
-        const cellCol = Math.floor((lng - bounds.getWest()) / cellLngSize);
-        const cell = `${cellRow}-${cellCol}`;
-        grid.push({ merchant, source: 'btcmap', cell });
-      }
-    });
+    btcMapMerchants
+      .filter(merchant => !merchant.osm_json?.tags?.deleted_at && !merchant.deleted_at)
+      .forEach(merchant => {
+        if (!merchant.osm_json?.lat || !merchant.osm_json?.lon) return;
+        const lat = merchant.osm_json.lat;
+        const lng = merchant.osm_json.lon;
+        if (bounds.contains([lat, lng])) {
+          const cellRow = Math.floor((lat - bounds.getSouth()) / cellLatSize);
+          const cellCol = Math.floor((lng - bounds.getWest()) / cellLngSize);
+          const cell = `${cellRow}-${cellCol}`;
+          grid.push({ merchant, source: 'btcmap', cell });
+        }
+      });
 
     // Process unique Blink merchants
     uniqueBlinkMerchants.forEach(marker => {
@@ -736,7 +738,7 @@ const createCustomIcon = (type: 'blink' | 'btcmap' | 'default' | 'bitcoinjungle'
 
   return L.divIcon({
     className: `custom-marker marker-${type}`,
-    html: `<div style="background-color: ${color}; width: 24px; height: 24px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
+    html: `<div style="background-color: ${color}; width: 24px; height: 24px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0,0.3);"></div>`,
     iconSize: [24, 24],
     iconAnchor: [12, 12],
     popupAnchor: [0, -12],
