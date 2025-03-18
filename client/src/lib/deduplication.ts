@@ -3,7 +3,7 @@ import * as turf from '@turf/turf';
 
 // Configuration options for deduplication
 export const DEDUP_CONFIG = {
-  NAME_SIMILARITY_THRESHOLD: 0.8,  // 80% name similarity threshold
+  NAME_SIMILARITY_THRESHOLD: 0.7,  // Lowered from 0.8 to catch more similar names
   DISTANCE_THRESHOLD: 100,         // 100 meters
   GRID_SIZE: 0.01,                // Roughly 1km grid cells
   NAME_WEIGHT: 0.6,               // Weight for name similarity in final score
@@ -14,7 +14,7 @@ export const DEDUP_CONFIG = {
 function cleanMerchantName(name: string): string {
   return name.toLowerCase()
     .replace(/[^\w\s]/g, '')  // Remove special characters
-    .replace(/\b(cafe|restaurant|bar|shop|store)\b/g, '')  // Remove common words
+    .replace(/\b(cafe|restaurant|bar|shop|store|ltd|inc|limited|llc|attorney|notary|law firm|lawyer)\b/g, '')  // Remove common business words
     .trim();
 }
 
@@ -75,13 +75,13 @@ function getGridKey(latitude: number, longitude: number): string {
 function getAdjacentGridKeys(gridKey: string): string[] {
   const [latGrid, lonGrid] = gridKey.split(',').map(Number);
   const adjacent: string[] = [];
-  
+
   for (let i = -1; i <= 1; i++) {
     for (let j = -1; j <= 1; j++) {
       adjacent.push(`${latGrid + i},${lonGrid + j}`);
     }
   }
-  
+
   return adjacent;
 }
 
@@ -93,12 +93,12 @@ export function deduplicateMerchants(
 ): { blinkMerchants: any[], bitcoinJungleMerchants: any[], stats: any } {
   // Create spatial index for BTCMap merchants
   const btcMapGrid: Record<string, any[]> = {};
-  
+
   btcMapMerchants.forEach(merchant => {
     const lat = merchant.osm_json.lat;
     const lon = merchant.osm_json.lon;
     const gridKey = getGridKey(lat, lon);
-    
+
     if (!btcMapGrid[gridKey]) {
       btcMapGrid[gridKey] = [];
     }
@@ -113,7 +113,7 @@ export function deduplicateMerchants(
   // Function to check if a merchant is a duplicate
   function isDuplicate(merchant: any, source: 'blink' | 'bitcoinjungle'): boolean {
     let lat, lon, name;
-    
+
     if (source === 'blink') {
       lat = merchant.mapInfo.coordinates.latitude;
       lon = merchant.mapInfo.coordinates.longitude;
@@ -126,23 +126,23 @@ export function deduplicateMerchants(
 
     const gridKey = getGridKey(lat, lon);
     const adjacentKeys = getAdjacentGridKeys(gridKey);
-    
+
     // Check all adjacent grid cells for potential duplicates
     for (const key of adjacentKeys) {
       const cellMerchants = btcMapGrid[key] || [];
-      
+
       for (const btcMerchant of cellMerchants) {
         const similarityScore = calculateSimilarityScore(
           { name, latitude: lat, longitude: lon },
           btcMerchant
         );
-        
+
         if (similarityScore >= DEDUP_CONFIG.NAME_SIMILARITY_THRESHOLD) {
           return true;
         }
       }
     }
-    
+
     return false;
   }
 
@@ -150,7 +150,7 @@ export function deduplicateMerchants(
   const uniqueBlinkMerchants = blinkMerchants.filter(
     merchant => !isDuplicate(merchant, 'blink')
   );
-  
+
   const uniqueBitcoinJungleMerchants = bitcoinJungleMerchants.filter(
     merchant => !isDuplicate(merchant, 'bitcoinjungle')
   );
