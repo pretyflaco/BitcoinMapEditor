@@ -15,9 +15,10 @@ function cleanMerchantName(name: string): string {
   return name.toLowerCase()
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Remove diacritics (é -> e)
     .replace(/[^\w\s]/g, ' ')  // Replace special characters with spaces
-    .replace(/\b(cafe|café|restaurant|bar|shop|store|ltd|inc|limited|llc|attorney|notary|law|firm|lawyer|abogado|legal|salvadoran|el salvador|and|&|the|specialty|roasters|bit|bitcofe|bitcoin)\b/g, '')  // Remove common business words
+    .replace(/\b(cafe|café|restaurant|bar|shop|store|ltd|inc|limited|llc|attorney|notary|law|firm|lawyer|abogado|legal|salvadoran|el salvador|and|&|the|specialty|roasters|bit|bitcofe|bitcoin|pro|loco|circolo)\b/g, '')  // Remove common business words
     .trim()
-    .replace(/\s+/g, ' '); // Normalize spaces
+    .replace(/\s+/g, ' ') // Normalize spaces
+    .replace(/acli/i, 'acli'); // Normalize ACLI/Acli variations
 }
 
 // Calculate Haversine distance between two points in meters
@@ -98,25 +99,27 @@ export function deduplicateMerchants(
   stats: any,
   blinkBtcMapMatches: Record<string, string> // Map of Blink usernames to BTCMap IDs
 } {
-  // Create spatial index for BTCMap merchants
+  // Filter out deleted BTCMap merchants and create spatial index
   const btcMapGrid: Record<string, any[]> = {};
   const blinkBtcMapMatches: Record<string, string> = {}; // Track matches
 
-  btcMapMerchants.forEach(merchant => {
-    const lat = merchant.osm_json.lat;
-    const lon = merchant.osm_json.lon;
-    const gridKey = getGridKey(lat, lon);
+  btcMapMerchants
+    .filter(merchant => !merchant.osm_json?.tags?.deleted_at) // Filter out deleted merchants
+    .forEach(merchant => {
+      const lat = merchant.osm_json.lat;
+      const lon = merchant.osm_json.lon;
+      const gridKey = getGridKey(lat, lon);
 
-    if (!btcMapGrid[gridKey]) {
-      btcMapGrid[gridKey] = [];
-    }
-    btcMapGrid[gridKey].push({
-      name: merchant.osm_json?.tags?.name || '',
-      latitude: lat,
-      longitude: lon,
-      original: merchant
+      if (!btcMapGrid[gridKey]) {
+        btcMapGrid[gridKey] = [];
+      }
+      btcMapGrid[gridKey].push({
+        name: merchant.osm_json?.tags?.name || '',
+        latitude: lat,
+        longitude: lon,
+        original: merchant
+      });
     });
-  });
 
   // Function to check if a merchant is a duplicate
   function isDuplicate(merchant: any, source: 'blink' | 'bitcoinjungle'): boolean {
@@ -171,6 +174,7 @@ export function deduplicateMerchants(
   // Compile statistics
   const stats = {
     totalBTCMap: btcMapMerchants.length,
+    activeBTCMap: btcMapMerchants.filter(m => !m.osm_json?.tags?.deleted_at).length,
     totalBlink: blinkMerchants.length,
     totalBitcoinJungle: bitcoinJungleMerchants.length,
     uniqueBlink: uniqueBlinkMerchants.length,
