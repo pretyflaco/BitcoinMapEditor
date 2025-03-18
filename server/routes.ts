@@ -86,10 +86,10 @@ Created at: ${new Date().toISOString()}
           title: merchantData.name,
           body: issueBody,
           labels: [
-            ...(country ? [`country:${country.toLowerCase()}`] : []),
+            ...(country ? [`[${country}]`] : []),
             'good first issue',
             'help wanted',
-            'location-submission'
+            { name: 'local-submission', description: 'Submission from the noob form' }
           ]
         })
       });

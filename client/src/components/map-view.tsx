@@ -222,14 +222,21 @@ function MapLayer() {
       ? 'https://tiles.openfreemap.org/styles/dark'
       : 'https://tiles.openfreemap.org/styles/positron';
 
-    const maplibreLayer = (L as any).maplibreGL({
-      style,
-      attribution: '© OpenFreeMap contributors'
-    });
+    let maplibreLayer: any = null;
+    let isDestroyed = false;
 
-    // Only add the layer if it doesn't exist
-    if (!map.hasLayer(maplibreLayer)) {
-      map.addLayer(maplibreLayer);
+    try {
+      maplibreLayer = (L as any).maplibreGL({
+        style,
+        attribution: '© OpenFreeMap contributors'
+      });
+
+      // Only add the layer if it doesn't exist and map is still valid
+      if (!isDestroyed && map && !map.hasLayer(maplibreLayer)) {
+        map.addLayer(maplibreLayer);
+      }
+    } catch (error) {
+      console.warn('Error adding maplibre layer:', error);
     }
 
     // Add custom controls
@@ -237,53 +244,71 @@ function MapLayer() {
       position: 'topleft',
       onSearch: handleSearch
     });
-    map.addControl(searchAndLocateControl);
+
+    if (!isDestroyed && map) {
+      try {
+        map.addControl(searchAndLocateControl);
+      } catch (error) {
+        console.warn('Error adding search control:', error);
+      }
+    }
 
     // Handle location events
-    map.on('locationfound', (e: L.LocationEvent) => {
+    const locationFoundHandler = (e: L.LocationEvent) => {
+      if (isDestroyed) return;
       const radius = e.accuracy;
       L.marker(e.latlng).addTo(map)
         .bindPopup("You are within " + Math.round(radius) + " meters from this point").openPopup();
-      L.circle(e.latlng, radius, {
-        color: '#136AEC',
-        fillColor: '#136AEC',
-        fillOpacity: 0.175,
-        weight: 2
-      }).addTo(map);
-    });
+      L.circle(e.latlng, radius).addTo(map);
+    };
 
-    map.on('locationerror', (error: L.ErrorEvent) => {
+    const locationErrorHandler = (error: L.ErrorEvent) => {
+      if (isDestroyed) return;
       toast({
         description: "Location access error. Please check your browser settings.",
       });
-    });
+    };
+
+    if (map) {
+      map.on('locationfound', locationFoundHandler);
+      map.on('locationerror', locationErrorHandler);
+    }
 
     // Clean up function
     return () => {
-      // Cleanup handlers with error handling
-      const cleanupLayer = () => {
+      isDestroyed = true;
+
+      // Remove event listeners first
+      if (map) {
+        map.off('locationfound', locationFoundHandler);
+        map.off('locationerror', locationErrorHandler);
+      }
+
+      // Cleanup layer with proper checks
+      if (map && maplibreLayer) {
         try {
-          if (map && maplibreLayer && map.hasLayer(maplibreLayer)) {
+          // Check if the map still exists and has the layer
+          if (map.hasLayer(maplibreLayer)) {
             map.removeLayer(maplibreLayer);
           }
         } catch (error) {
-          console.warn('Error removing maplibre layer:', error);
-        }
-      };
-
-      const cleanupControl = () => {
-        try {
-          if (map && searchAndLocateControl) {
-            map.removeControl(searchAndLocateControl);
+          // Ignore AbortError as it's expected during cleanup
+          if (error instanceof Error && error.name !== 'AbortError') {
+            console.warn('Error removing maplibre layer:', error);
           }
-        } catch (error) {
-          console.warn('Error removing search control:', error);
         }
-      };
+      }
 
-      // Execute cleanup
-      cleanupLayer();
-      cleanupControl();
+      // Remove control with proper checks
+      if (map && searchAndLocateControl) {
+        try {
+          map.removeControl(searchAndLocateControl);
+        } catch (error) {
+          if (error instanceof Error && error.name !== 'AbortError') {
+            console.warn('Error removing search control:', error);
+          }
+        }
+      }
     };
   }, [map, theme, toast, handleSearch]);
 
