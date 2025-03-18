@@ -3,7 +3,8 @@ import { createServer, type Server } from "http";
 import { insertMerchantSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { request, gql } from 'graphql-request';
-import reverseGeocoding from 'reverse-geocoding';
+import { ZodError } from "zod";
+import ReverseGeocoding from 'reverse-geocoding';
 
 const BLINK_API = 'https://api.blink.sv/graphql';
 const BITCOIN_JUNGLE_API = 'https://api.mainnet.bitcoinjungle.app/graphql';
@@ -21,20 +22,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const merchantData = insertMerchantSchema.parse(req.body);
 
       // Get country from coordinates
-      const geoData = await new Promise((resolve, reject) => {
-        reverseGeocoding.location({
-          latitude: merchantData.latitude,
-          longitude: merchantData.longitude,
+      let country = '';
+      try {
+        const geocoder = new ReverseGeocoding({
           key: 'AIzaSyBpzP5RTtQKVxGkzxH9IjigqPrVG3ucLLM'
-        }, (err: any, data: any) => {
-          if (err) reject(err);
-          else resolve(data);
         });
-      });
 
-      const country = geoData?.results?.[0]?.address_components?.find(
-        (component: any) => component.types.includes('country')
-      )?.long_name || '';
+        const geoData = await new Promise((resolve, reject) => {
+          geocoder.location({
+            lat: merchantData.latitude,
+            lng: merchantData.longitude
+          }, (err: any, data: any) => {
+            if (err) reject(err);
+            else resolve(data);
+          });
+        });
+
+        country = geoData?.results?.[0]?.address_components?.find(
+          (component: any) => component.types.includes('country')
+        )?.long_name || '';
+      } catch (error) {
+        console.error('Error getting country from coordinates:', error);
+        // Continue with empty country if geocoding fails
+      }
 
       // Format the issue body according to the specified template
       const issueBody = `
@@ -90,7 +100,7 @@ Created at: ${new Date().toISOString()}
       });
     } catch (error) {
       console.error('Error creating merchant suggestion:', error);
-      if (error instanceof Error) {
+      if (error instanceof ZodError) {
         const validationError = fromZodError(error);
         res.status(400).json({ message: validationError.message });
       } else {
@@ -99,6 +109,7 @@ Created at: ${new Date().toISOString()}
     }
   });
 
+  // Keep the rest of the routes unchanged
   app.get("/api/merchants", async (_req, res) => {
     try {
       //This route is not implemented in edited code, leaving it as is.
