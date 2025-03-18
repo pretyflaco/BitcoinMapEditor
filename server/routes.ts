@@ -1,14 +1,20 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { insertMerchantSchema } from "@shared/schema";
+import { insertMerchantSchema, btcmapElements } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { request, gql } from 'graphql-request';
 import { ZodError } from "zod";
+import { eq, desc } from 'drizzle-orm';
+import { db } from './db';
 
 const BLINK_API = 'https://api.blink.sv/graphql';
 const BITCOIN_JUNGLE_API = 'https://api.mainnet.bitcoinjungle.app/graphql';
 const GITHUB_TOKEN = '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';
 const GITHUB_REPO = 'pretyflaco/BitcoinMapEditor';
+
+const BTCMAP_API = 'https://api.btcmap.org/v2';
+const DEFAULT_SYNC_DAYS = 7; // Sync last 7 days by default
+const ELEMENTS_PER_PAGE = 100;
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Add a status endpoint to verify server is running
@@ -115,10 +121,8 @@ Created at: ${new Date().toISOString()}
     }
   });
 
-  // Keep the rest of the routes unchanged
   app.get("/api/merchants", async (_req, res) => {
     try {
-      //This route is not implemented in edited code, leaving it as is.
       res.status(500).json({ message: "Not implemented" });
 
     } catch (error) {
@@ -128,19 +132,64 @@ Created at: ${new Date().toISOString()}
 
   app.get("/api/btcmap/merchants", async (_req, res) => {
     try {
-      const response = await fetch("https://api.btcmap.org/v2/elements", {
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'BTCMap-Frontend/1.0'
+      // Get the most recent synced element
+      const lastSynced = await db.select()
+        .from(btcmapElements)
+        .orderBy(desc(btcmapElements.updatedAt))
+        .limit(1);
+
+      // Default to 7 days ago if no previous sync
+      const updatedSince = lastSynced[0]?.updatedAt || 
+        new Date(Date.now() - (DEFAULT_SYNC_DAYS * 24 * 60 * 60 * 1000));
+
+      console.log('Fetching BTCMap elements updated since:', updatedSince.toISOString());
+
+      // Fetch updates from BTCMap API
+      const response = await fetch(
+        `${BTCMAP_API}/elements?updated_since=${updatedSince.toISOString()}&limit=${ELEMENTS_PER_PAGE}`,
+        {
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'BTCMap-Frontend/1.0'
+          }
         }
-      });
+      );
 
       if (!response.ok) {
         throw new Error(`BTCMap API error: ${response.statusText}`);
       }
 
-      const data = await response.json();
-      res.json(data);
+      const newElements = await response.json();
+
+      // Update cache with new/updated elements
+      for (const element of newElements) {
+        await db.insert(btcmapElements)
+          .values({
+            elementId: element.id,
+            osmData: element.osm_json,
+            updatedAt: new Date(element.updated_at),
+            syncedAt: new Date()
+          })
+          .onConflictDoUpdate({
+            target: btcmapElements.elementId,
+            set: {
+              osmData: element.osm_json,
+              updatedAt: new Date(element.updated_at),
+              syncedAt: new Date()
+            }
+          });
+      }
+
+      // Return all cached elements
+      const cachedElements = await db.select()
+        .from(btcmapElements)
+        .orderBy(desc(btcmapElements.updatedAt));
+
+      res.json(cachedElements.map(el => ({
+        id: el.elementId,
+        osm_json: el.osmData,
+        updated_at: el.updatedAt.toISOString()
+      })));
     } catch (error) {
       console.error('BTCMap API error:', error);
       res.status(500).json({ 
