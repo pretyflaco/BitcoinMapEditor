@@ -1,0 +1,39 @@
+Implement an efficient deduplication system that only shows merchants from Blink and Bitcoin Jungle data sets that are not in our existing BTCMap dataset, with the following requirements:
+
+1. Create a function that fetches merchant data from the 3 data sources: the BTCMap API, the Blink API and the Bitcoin Jungle API.
+
+2. Implement a sophisticated duplicate detection algorithm that:
+   - Uses fuzzy string matching for merchant name similarity (consider libraries like Levenshtein distance, Jaro-Winkler, or TF-IDF)
+   - Computes geospatial proximity between merchant locations (using Haversine formula for distance calculation)
+   - Considers two merchants as potential duplicates if:
+     * Their names exceed a configurable similarity threshold (e.g., 80% similarity)
+     * AND their locations are within a configurable distance threshold (e.g., 100 meters)
+
+3. Create a scoring system that combines both name similarity and location proximity:
+   - Higher weights for exact or near-exact name matches
+   - Lower weights for merchants that are far apart geographically
+   - Adjustable thresholds for what constitutes a duplicate
+
+4. Implement an efficient comparison strategy:
+   - Use geospatial indexing to only compare merchants within reasonable proximity
+   - Consider using a grid-based approach or quadtree to avoid O(n²) comparisons
+   - Pre-process merchant names (lowercase, remove common words like "cafe", "restaurant")
+
+5. Build a function that:
+   - Shows only non-duplicate Blink merchants and only non-duplicate Bitcoin Jungle merchants on our map 
+   - Logs potential duplicates with their similarity scores for manual review
+  
+
+6. Add configuration options:
+   - Adjustable similarity thresholds
+   - Configurable distance thresholds
+   - Toggles for different comparison algorithms
+
+7. Implement proper error handling and progress tracking for the deduplication process
+
+8. Create a reporting mechanism that summarizes:
+   - Number of merchants from each source
+   - Number of duplicates found
+   - Number of new merchants added
+
+Please structure the code with clean separation of concerns and include thorough documentation explaining the duplicate detection strategy and algorithms used.
