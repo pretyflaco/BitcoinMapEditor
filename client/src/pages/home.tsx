@@ -239,171 +239,91 @@ export default function Home() {
 
         {showMerchantForm && (
           <div className="absolute top-0 right-0 h-full pointer-events-auto">
-            <Card className="w-96 h-full">
-              <CardContent className="p-4">
-                <h2 className="text-2xl font-semibold mb-2">
-                  Suggest Business
-                </h2>
-                <p className="text-sm text-muted-foreground mb-6">
-                  Fill out the following form and one of our volunteer community members will add your location to the map.
-                </p>
+            <Card className="w-96 h-full flex flex-col">
+              <CardContent className="p-4 flex flex-col h-full">
+                <div className="flex-none">
+                  <h2 className="text-2xl font-semibold mb-2">
+                    Suggest Business
+                  </h2>
+                  <p className="text-sm text-muted-foreground mb-6">
+                    Fill out the following form and one of our volunteer community members will add your location to the map.
+                  </p>
+                </div>
+
                 <Form {...merchantForm}>
-                  <form onSubmit={merchantForm.handleSubmit(onSubmit)} className="space-y-4">
-                    <FormField
-                      control={merchantForm.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Merchant Name</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder="Satoshi's Comics" />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="grid grid-cols-2 gap-4">
+                  <form onSubmit={merchantForm.handleSubmit(onSubmit)} className="flex flex-col h-full">
+                    <div className="flex-1 overflow-y-auto space-y-4 pr-2">
                       <FormField
                         control={merchantForm.control}
-                        name="latitude"
-                        render={({ field: { onChange, ...field } }) => (
+                        name="name"
+                        render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Latitude</FormLabel>
+                            <FormLabel>Merchant Name</FormLabel>
                             <FormControl>
-                              <Input 
-                                {...field}
-                                type="number"
-                                step="any"
-                                onChange={(e) => {
-                                  const lat = parseFloat(e.target.value);
-                                  onChange(e);
-                                  if (!isNaN(lat)) {
-                                    handleCoordinateChange(lat, longitude || 0);
-                                  }
-                                }}
-                              />
+                              <Input {...field} placeholder="Satoshi's Comics" />
                             </FormControl>
                           </FormItem>
                         )}
                       />
 
-                      <FormField
-                        control={merchantForm.control}
-                        name="longitude"
-                        render={({ field: { onChange, ...field } }) => (
-                          <FormItem>
-                            <FormLabel>Longitude</FormLabel>
-                            <FormControl>
-                              <Input 
-                                {...field}
-                                type="number"
-                                step="any"
-                                onChange={(e) => {
-                                  const lng = parseFloat(e.target.value);
-                                  onChange(e);
-                                  if (!isNaN(lng)) {
-                                    handleCoordinateChange(latitude || 0, lng);
-                                  }
-                                }}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <FormField
-                      control={merchantForm.control}
-                      name="address"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Address</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder="2100 Freedom Drive..." />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={merchantForm.control}
-                      name="type"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Category</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder="Restaurant etc." />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={merchantForm.control}
-                      name="paymentMethods"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Select accepted payment methods</FormLabel>
-                          <div className="flex flex-col gap-2">
-                            {["onchain", "lightning", "lightning_contactless"].map((method) => (
-                              <div key={method} className="flex items-center space-x-2">
-                                <Checkbox
-                                  checked={field.value?.includes(method)}
-                                  onCheckedChange={(checked) => {
-                                    const currentValue = field.value || [];
-                                    const newValue = checked
-                                      ? [...currentValue, method]
-                                      : currentValue.filter((v) => v !== method);
-                                    field.onChange(newValue);
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={merchantForm.control}
+                          name="latitude"
+                          render={({ field: { onChange, ...field } }) => (
+                            <FormItem>
+                              <FormLabel>Latitude</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  {...field}
+                                  type="number"
+                                  step="any"
+                                  onChange={(e) => {
+                                    const lat = parseFloat(e.target.value);
+                                    onChange(e);
+                                    if (!isNaN(lat)) {
+                                      handleCoordinateChange(lat, longitude || 0);
+                                    }
                                   }}
                                 />
-                                <label className="text-sm font-medium leading-none">
-                                  {method === "onchain" ? "On-chain" :
-                                   method === "lightning" ? "Lightning" :
-                                   "Lightning Contactless"}
-                                </label>
-                              </div>
-                            ))}
-                          </div>
-                        </FormItem>
-                      )}
-                    />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
 
-                    <FormField
-                      control={merchantForm.control}
-                      name="website"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Website (optional)</FormLabel>
-                          <FormControl>
-                            <Input {...field} type="url" placeholder="https://bitcoin.org" />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
+                        <FormField
+                          control={merchantForm.control}
+                          name="longitude"
+                          render={({ field: { onChange, ...field } }) => (
+                            <FormItem>
+                              <FormLabel>Longitude</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  {...field}
+                                  type="number"
+                                  step="any"
+                                  onChange={(e) => {
+                                    const lng = parseFloat(e.target.value);
+                                    onChange(e);
+                                    if (!isNaN(lng)) {
+                                      handleCoordinateChange(latitude || 0, lng);
+                                    }
+                                  }}
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                      </div>
 
-                    <FormField
-                      control={merchantForm.control}
-                      name="phone"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Phone (optional)</FormLabel>
-                          <FormControl>
-                            <Input {...field} type="tel" placeholder="+21 420 69 1337" />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="grid grid-cols-2 gap-4">
                       <FormField
                         control={merchantForm.control}
-                        name="twitterMerchant"
+                        name="address"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>X/Twitter handle (optional)</FormLabel>
+                            <FormLabel>Address</FormLabel>
                             <FormControl>
-                              <Input {...field} placeholder="Merchant" />
+                              <Input {...field} placeholder="2100 Freedom Drive..." />
                             </FormControl>
                           </FormItem>
                         )}
@@ -411,87 +331,174 @@ export default function Home() {
 
                       <FormField
                         control={merchantForm.control}
-                        name="twitterSubmitter"
+                        name="type"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>&nbsp;</FormLabel>
+                            <FormLabel>Category</FormLabel>
                             <FormControl>
-                              <Input {...field} placeholder="Submitter" />
+                              <Input {...field} placeholder="Restaurant etc." />
                             </FormControl>
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={merchantForm.control}
+                        name="paymentMethods"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Select accepted payment methods</FormLabel>
+                            <div className="flex flex-col gap-2">
+                              {["onchain", "lightning", "lightning_contactless"].map((method) => (
+                                <div key={method} className="flex items-center space-x-2">
+                                  <Checkbox
+                                    checked={field.value?.includes(method)}
+                                    onCheckedChange={(checked) => {
+                                      const currentValue = field.value || [];
+                                      const newValue = checked
+                                        ? [...currentValue, method]
+                                        : currentValue.filter((v) => v !== method);
+                                      field.onChange(newValue);
+                                    }}
+                                  />
+                                  <label className="text-sm font-medium leading-none">
+                                    {method === "onchain" ? "On-chain" :
+                                     method === "lightning" ? "Lightning" :
+                                     "Lightning Contactless"}
+                                  </label>
+                                </div>
+                              ))}
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={merchantForm.control}
+                        name="website"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Website (optional)</FormLabel>
+                            <FormControl>
+                              <Input {...field} type="url" placeholder="https://bitcoin.org" />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={merchantForm.control}
+                        name="phone"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Phone (optional)</FormLabel>
+                            <FormControl>
+                              <Input {...field} type="tel" placeholder="+21 420 69 1337" />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={merchantForm.control}
+                          name="twitterMerchant"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>X/Twitter handle (optional)</FormLabel>
+                              <FormControl>
+                                <Input {...field} placeholder="Merchant" />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={merchantForm.control}
+                          name="twitterSubmitter"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>&nbsp;</FormLabel>
+                              <FormControl>
+                                <Input {...field} placeholder="Submitter" />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      <FormField
+                        control={merchantForm.control}
+                        name="notes"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Notes (optional)</FormLabel>
+                            <FormControl>
+                              <Textarea {...field} placeholder="Any other relevant details?" />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={merchantForm.control}
+                        name="dataSource"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Data Source</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select data source" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="I am the business owner">I am the business owner</SelectItem>
+                                <SelectItem value="I visited as a customer">I visited as a customer</SelectItem>
+                                <SelectItem value="Other method">Other method</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={merchantForm.control}
+                        name="contact"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Public Contact</FormLabel>
+                            <FormControl>
+                              <Input {...field} type="email" placeholder="hello@btcmap.org" />
+                            </FormControl>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              If we have any follow-up questions we will contact you in order to add your location successfully. To speed up the process please check your spam folder in case it ends up there.
+                            </p>
                           </FormItem>
                         )}
                       />
                     </div>
 
-                    <FormField
-                      control={merchantForm.control}
-                      name="notes"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Notes (optional)</FormLabel>
-                          <FormControl>
-                            <Textarea {...field} placeholder="Any other relevant details?" />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={merchantForm.control}
-                      name="dataSource"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Data Source</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select data source" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="I am the business owner">I am the business owner</SelectItem>
-                              <SelectItem value="I visited as a customer">I visited as a customer</SelectItem>
-                              <SelectItem value="Other method">Other method</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={merchantForm.control}
-                      name="contact"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Public Contact</FormLabel>
-                          <FormControl>
-                            <Input {...field} type="email" placeholder="hello@btcmap.org" />
-                          </FormControl>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            If we have any follow-up questions we will contact you in order to add your location successfully. To speed up the process please check your spam folder in case it ends up there.
-                          </p>
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="flex gap-2 mt-8">
-                      <Button variant="outline" onClick={handleCancel} className="flex-1">
-                        Cancel
-                      </Button>
-                      <Button 
-                        type="submit"
-                        className="flex-1"
-                        disabled={mutation.isPending}
-                      >
-                        {mutation.isPending ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Submitting...
-                          </>
-                        ) : (
-                          "Submit"
-                        )}
-                      </Button>
+                    <div className="flex-none pt-4 mt-4 border-t">
+                      <div className="flex gap-2">
+                        <Button variant="outline" onClick={handleCancel} className="flex-1">
+                          Cancel
+                        </Button>
+                        <Button 
+                          type="submit"
+                          className="flex-1"
+                          disabled={mutation.isPending}
+                        >
+                          {mutation.isPending ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Submitting...
+                            </>
+                          ) : (
+                            "Submit"
+                          )}
+                        </Button>
+                      </div>
                     </div>
                   </form>
                 </Form>
