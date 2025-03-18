@@ -13,8 +13,8 @@ const GITHUB_TOKEN = 'github_pat_11AH3ONFY0u7Zg3CiLkF2H_1TfHuwRfDHeuj1irx2TKgHM8
 const GITHUB_REPO = 'pretyflaco/BitcoinMapEditor';
 
 const BTCMAP_API = 'https://api.btcmap.org/v2';
-const DEFAULT_SYNC_DAYS = 365 * 2; // Sync last 2 years by default for first sync
-const ELEMENTS_PER_PAGE = 1000; // Increase page size for faster syncing
+const ELEMENTS_PER_PAGE = 100; // Smaller batch size for better reliability
+const EARLIEST_DATE = new Date('2010-01-01'); // Fetch all historical data
 
 async function fetchBTCMapElements(updatedSince: Date): Promise<any[]> {
   let allElements: any[] = [];
@@ -185,17 +185,23 @@ Created at: ${new Date().toISOString()}
         .orderBy(desc(btcmapElements.updatedAt))
         .limit(1);
 
-      // If no previous sync, get last 2 years of data
-      const updatedSince = lastSynced[0]?.updatedAt ||
-        new Date(Date.now() - (DEFAULT_SYNC_DAYS * 24 * 60 * 60 * 1000));
-
+      // Always fetch from the earliest date to ensure we get all merchants
+      const updatedSince = EARLIEST_DATE;
       console.log('Fetching BTCMap elements updated since:', updatedSince.toISOString());
 
       // Fetch all elements since last sync
       const newElements = await fetchBTCMapElements(updatedSince);
       console.log(`Total elements fetched: ${newElements.length}`);
 
-      // Update cache with new/updated elements
+      // Clear existing cache before updating with new data
+      try {
+        await db.delete(btcmapElements);
+        console.log('Cleared existing cache');
+      } catch (error) {
+        console.error('Error clearing cache:', error);
+      }
+
+      // Update cache with new elements
       let updatedCount = 0;
       for (const element of newElements) {
         try {
@@ -228,11 +234,6 @@ Created at: ${new Date().toISOString()}
         .orderBy(desc(btcmapElements.updatedAt));
 
       console.log(`Returning ${cachedElements.length} cached elements`);
-
-      // Log sample data to verify format
-      if (cachedElements.length > 0) {
-        console.log('Sample cached element:', JSON.stringify(cachedElements[0], null, 2));
-      }
 
       // Format the response to match exactly what BTCMap API returns
       const formattedElements = cachedElements.map(el => ({
