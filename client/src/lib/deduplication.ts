@@ -3,19 +3,19 @@ import * as turf from '@turf/turf';
 
 // Configuration options for deduplication
 export const DEDUP_CONFIG = {
-  NAME_SIMILARITY_THRESHOLD: 0.65,  // Lowered from 0.7 to catch more similar names
+  NAME_SIMILARITY_THRESHOLD: 0.6,  // Lowered to catch more edge cases
   DISTANCE_THRESHOLD: 100,         // 100 meters
   GRID_SIZE: 0.01,                // Roughly 1km grid cells
-  NAME_WEIGHT: 0.6,               // Weight for name similarity in final score
-  LOCATION_WEIGHT: 0.4,           // Weight for location proximity in final score
+  NAME_WEIGHT: 0.7,               // Increased weight for name similarity
+  LOCATION_WEIGHT: 0.3,           // Decreased weight for location proximity
 };
 
 // Helper to clean merchant names for comparison
 function cleanMerchantName(name: string): string {
   return name.toLowerCase()
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Remove diacritics (é -> e)
-    .replace(/[^\w\s]/g, '')  // Remove special characters
-    .replace(/\b(cafe|café|restaurant|bar|shop|store|ltd|inc|limited|llc|attorney|notary|law firm|lawyer|abogado|firm|and|&)\b/g, '')  // Remove common business words
+    .replace(/[^\w\s]/g, ' ')  // Replace special characters with spaces
+    .replace(/\b(cafe|café|restaurant|bar|shop|store|ltd|inc|limited|llc|attorney|notary|law|firm|lawyer|abogado|legal|salvadoran|el salvador|and|&|the)\b/g, '')  // Remove common business words
     .trim()
     .replace(/\s+/g, ' '); // Normalize spaces
 }
