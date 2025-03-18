@@ -9,7 +9,6 @@ const BLINK_API = 'https://api.blink.sv/graphql';
 const BITCOIN_JUNGLE_API = 'https://api.mainnet.bitcoinjungle.app/graphql';
 const GITHUB_TOKEN = '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';
 const GITHUB_REPO = 'pretyflaco/BitcoinMapEditor';
-const GOOGLE_MAPS_API_KEY = 'AIzaSyBpzP5RTtQKVxGkzxH9IjigqPrVG3ucLLM';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Add a status endpoint to verify server is running
@@ -21,32 +20,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const merchantData = insertMerchantSchema.parse(req.body);
 
-      // Get country from coordinates using Google Maps Geocoding API directly
+      // Get country from coordinates using Nominatim OpenStreetMap API
       let country = '';
       try {
         const response = await fetch(
-          `https://maps.googleapis.com/maps/api/geocode/json?latlng=${merchantData.latitude},${merchantData.longitude}&key=${GOOGLE_MAPS_API_KEY}`
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${merchantData.latitude}&lon=${merchantData.longitude}&zoom=3`,
+          {
+            headers: {
+              'User-Agent': 'BitcoinMapEditor/1.0',
+              'Accept': 'application/json'
+            }
+          }
         );
 
         if (!response.ok) {
-          throw new Error(`Geocoding API error: ${response.statusText}`);
+          throw new Error(`Nominatim API error: ${response.statusText}`);
         }
 
         const data = await response.json();
+        console.log('Nominatim API response:', data);
 
-        if (data.status === 'OK' && data.results && data.results.length > 0) {
-          // Find the country component in the results
-          for (const result of data.results) {
-            for (const component of result.address_components) {
-              if (component.types.includes('country')) {
-                country = component.long_name;
-                break;
-              }
-            }
-            if (country) break;
-          }
+        if (data.address && data.address.country) {
+          country = data.address.country;
+          console.log('Found country:', country);
         } else {
-          console.warn('No results from Geocoding API:', data.status);
+          console.warn('No country found in Nominatim response:', data);
         }
       } catch (error) {
         console.error('Error getting country from coordinates:', error);
