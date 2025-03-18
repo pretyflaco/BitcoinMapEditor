@@ -1,6 +1,4 @@
 import { z } from "zod";
-import { pgTable, text, timestamp, jsonb } from 'drizzle-orm/pg-core';
-import { createInsertSchema } from 'drizzle-zod';
 
 export const insertMerchantSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -28,20 +26,7 @@ export const insertMerchantSchema = z.object({
 
 export type InsertMerchant = z.infer<typeof insertMerchantSchema>;
 
-// New BTCMap caching schema
-export const btcmapElements = pgTable('btcmap_elements', {
-  elementId: text('element_id').primaryKey(),
-  osmData: jsonb('osm_data').notNull(),
-  updatedAt: timestamp('updated_at').notNull(),
-  syncedAt: timestamp('synced_at').notNull().defaultNow(),
-});
-
-export type BTCMapElement = typeof btcmapElements.$inferSelect;
-export type InsertBTCMapElement = typeof btcmapElements.$inferInsert;
-
-// Export the insert schema for validation
-export const insertBTCMapElementSchema = createInsertSchema(btcmapElements);
-
+// Type for merchant data returned from various APIs
 export type Merchant = {
   id: string | number;
   name: string;

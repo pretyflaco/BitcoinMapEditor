@@ -1,68 +1,14 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { insertMerchantSchema, btcmapElements } from "@shared/schema";
+import { insertMerchantSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { request, gql } from 'graphql-request';
 import { ZodError } from "zod";
-import { eq, desc } from 'drizzle-orm';
-import { db } from './db';
 
 const BLINK_API = 'https://api.blink.sv/graphql';
 const BITCOIN_JUNGLE_API = 'https://api.mainnet.bitcoinjungle.app/graphql';
 const GITHUB_TOKEN = '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';
 const GITHUB_REPO = 'pretyflaco/BitcoinMapEditor';
-
-const BTCMAP_API = 'https://api.btcmap.org/v2';
-const ELEMENTS_PER_PAGE = 100; // Smaller batch size for better reliability
-const EARLIEST_DATE = new Date('2010-01-01'); // Fetch all historical data
-
-async function fetchBTCMapElements(updatedSince: Date): Promise<any[]> {
-  let allElements: any[] = [];
-  let hasMore = true;
-  let offset = 0;
-  const previousOffsets = new Set<number>();
-
-  while (hasMore) {
-    try {
-      // Break if we've seen this offset before (prevents infinite loop)
-      if (previousOffsets.has(offset)) {
-        console.log('Breaking loop - duplicate offset detected');
-        break;
-      }
-      previousOffsets.add(offset);
-
-      console.log(`Fetching BTCMap elements from offset ${offset}...`);
-      const response = await fetch(
-        `${BTCMAP_API}/elements?updated_since=${updatedSince.toISOString()}&limit=${ELEMENTS_PER_PAGE}&offset=${offset}`,
-        {
-          headers: {
-            'Accept': 'application/json',
-            'User-Agent': 'BTCMap-Frontend/1.0'
-          }
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`BTCMap API error: ${response.statusText}`);
-      }
-
-      const elements = await response.json();
-
-      if (elements.length === 0) {
-        hasMore = false;
-      } else {
-        allElements = allElements.concat(elements);
-        offset += ELEMENTS_PER_PAGE; // Use constant page size instead of variable elements length
-        console.log(`Fetched ${elements.length} elements, total: ${allElements.length}`);
-      }
-    } catch (error) {
-      console.error('Error fetching BTCMap elements:', error);
-      hasMore = false;
-    }
-  }
-
-  return allElements;
-}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Add a status endpoint to verify server is running
@@ -169,9 +115,12 @@ Created at: ${new Date().toISOString()}
     }
   });
 
+  // Keep the rest of the routes unchanged
   app.get("/api/merchants", async (_req, res) => {
     try {
+      //This route is not implemented in edited code, leaving it as is.
       res.status(500).json({ message: "Not implemented" });
+
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch merchants" });
     }
@@ -179,73 +128,22 @@ Created at: ${new Date().toISOString()}
 
   app.get("/api/btcmap/merchants", async (_req, res) => {
     try {
-      // Get the most recent synced element
-      const lastSynced = await db.select()
-        .from(btcmapElements)
-        .orderBy(desc(btcmapElements.updatedAt))
-        .limit(1);
-
-      // Always fetch from the earliest date to ensure we get all merchants
-      const updatedSince = EARLIEST_DATE;
-      console.log('Fetching BTCMap elements updated since:', updatedSince.toISOString());
-
-      // Fetch all elements since last sync
-      const newElements = await fetchBTCMapElements(updatedSince);
-      console.log(`Total elements fetched: ${newElements.length}`);
-
-      // Clear existing cache before updating with new data
-      try {
-        await db.delete(btcmapElements);
-        console.log('Cleared existing cache');
-      } catch (error) {
-        console.error('Error clearing cache:', error);
-      }
-
-      // Update cache with new elements
-      let updatedCount = 0;
-      for (const element of newElements) {
-        try {
-          await db.insert(btcmapElements)
-            .values({
-              elementId: element.id,
-              osmData: element.osm_json,
-              updatedAt: new Date(element.updated_at),
-              syncedAt: new Date()
-            })
-            .onConflictDoUpdate({
-              target: btcmapElements.elementId,
-              set: {
-                osmData: element.osm_json,
-                updatedAt: new Date(element.updated_at),
-                syncedAt: new Date()
-              }
-            });
-          updatedCount++;
-        } catch (error) {
-          console.error(`Error updating element ${element.id}:`, error);
+      const response = await fetch("https://api.btcmap.org/v2/elements", {
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'BTCMap-Frontend/1.0'
         }
+      });
+
+      if (!response.ok) {
+        throw new Error(`BTCMap API error: ${response.statusText}`);
       }
 
-      console.log(`Updated ${updatedCount} elements in cache`);
-
-      // Return all cached elements
-      const cachedElements = await db.select()
-        .from(btcmapElements)
-        .orderBy(desc(btcmapElements.updatedAt));
-
-      console.log(`Returning ${cachedElements.length} cached elements`);
-
-      // Format the response to match exactly what BTCMap API returns
-      const formattedElements = cachedElements.map(el => ({
-        id: el.elementId,
-        osm_json: typeof el.osmData === 'string' ? JSON.parse(el.osmData) : el.osmData,
-        updated_at: el.updatedAt.toISOString()
-      }));
-
-      res.json(formattedElements);
+      const data = await response.json();
+      res.json(data);
     } catch (error) {
       console.error('BTCMap API error:', error);
-      res.status(500).json({
+      res.status(500).json({ 
         message: "Failed to fetch merchants from BTCMap",
         error: error instanceof Error ? error.message : "Unknown error"
       });
@@ -287,7 +185,7 @@ Created at: ${new Date().toISOString()}
       res.json(data.businessMapMarkers);
     } catch (error) {
       console.error('Blink API error:', error);
-      res.status(500).json({
+      res.status(500).json({ 
         message: "Failed to fetch merchants from Blink",
         error: error instanceof Error ? error.message : "Unknown error"
       });
@@ -313,7 +211,7 @@ Created at: ${new Date().toISOString()}
       res.json(data);
     } catch (error) {
       console.error('Bitcoin Jungle API error:', error);
-      res.status(500).json({
+      res.status(500).json({ 
         message: "Failed to fetch merchants from Bitcoin Jungle",
         error: error instanceof Error ? error.message : "Unknown error"
       });
@@ -371,7 +269,7 @@ Created at: ${new Date().toISOString()}
       res.json(data);
     } catch (error) {
       console.error('Bitcoin Jungle API Schema error:', error);
-      res.status(500).json({
+      res.status(500).json({ 
         message: "Failed to fetch Bitcoin Jungle API schema",
         error: error instanceof Error ? error.message : "Unknown error"
       });
