@@ -90,7 +90,7 @@ Created at: ${new Date().toISOString()}
             ...(country ? [country] : []),
             'good first issue',
             'help wanted',
-            { name: 'local-submission', description: 'Submission from the noob form' }
+            { name: 'blink-submission', description: 'Submitted from Blink Map' }
           ]
         })
       });
