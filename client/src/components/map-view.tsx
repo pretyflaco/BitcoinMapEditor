@@ -415,7 +415,7 @@ function MapLayer() {
                         class="w-6 h-6"
                       />
                       <img
-                        src="https://btcmap.org/icons/${paymentMethods.lightning === 'yes' ? 'ln-primary' : 'ln-no'}.svg"
+                        src="https://btcmap.org/icons/${paymentMethods.lightning === 'yes' ? 'ln-primary' : 'ln'}.svg"
                         alt="Lightning payments"
                         class="w-6 h-6"
                       />
@@ -723,12 +723,10 @@ export default function MapView({ selectedLocation, onLocationSelect }: MapViewP
       style={{ height: "100vh", width: "100%" }}
     >
       <MapLayer />
-      {selectedLocation && (
-        <LocationMarker
-          selectedLocation={selectedLocation}
-          onLocationSelect={onLocationSelect}
-        />
-      )}
+      <LocationMarker
+        selectedLocation={selectedLocation}
+        onLocationSelect={onLocationSelect}
+      />
     </MapContainer>
   );
 }

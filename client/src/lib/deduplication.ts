@@ -3,7 +3,7 @@ import * as turf from '@turf/turf';
 
 // Configuration options for deduplication
 export const DEDUP_CONFIG = {
-  NAME_SIMILARITY_THRESHOLD: 0.7,  // Lowered from 0.8 to catch more similar names
+  NAME_SIMILARITY_THRESHOLD: 0.65,  // Lowered from 0.7 to catch more similar names
   DISTANCE_THRESHOLD: 100,         // 100 meters
   GRID_SIZE: 0.01,                // Roughly 1km grid cells
   NAME_WEIGHT: 0.6,               // Weight for name similarity in final score
@@ -13,9 +13,11 @@ export const DEDUP_CONFIG = {
 // Helper to clean merchant names for comparison
 function cleanMerchantName(name: string): string {
   return name.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Remove diacritics (é -> e)
     .replace(/[^\w\s]/g, '')  // Remove special characters
-    .replace(/\b(cafe|restaurant|bar|shop|store|ltd|inc|limited|llc|attorney|notary|law firm|lawyer)\b/g, '')  // Remove common business words
-    .trim();
+    .replace(/\b(cafe|café|restaurant|bar|shop|store|ltd|inc|limited|llc|attorney|notary|law firm|lawyer|abogado|firm|and|&)\b/g, '')  // Remove common business words
+    .trim()
+    .replace(/\s+/g, ' '); // Normalize spaces
 }
 
 // Calculate Haversine distance between two points in meters
@@ -43,7 +45,7 @@ function calculateSimilarityScore(
     longitude: number;
   }
 ): number {
-  // Calculate name similarity
+  // Calculate name similarity with cleaned names
   const name1 = cleanMerchantName(merchant1.name);
   const name2 = cleanMerchantName(merchant2.name);
   const nameSimilarity = stringSimilarity.compareTwoStrings(name1, name2);
@@ -138,6 +140,7 @@ export function deduplicateMerchants(
         );
 
         if (similarityScore >= DEDUP_CONFIG.NAME_SIMILARITY_THRESHOLD) {
+          console.log(`Found duplicate: "${name}" matches "${btcMerchant.name}" with score ${similarityScore}`);
           return true;
         }
       }
