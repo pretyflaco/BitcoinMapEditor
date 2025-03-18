@@ -260,24 +260,30 @@ function MapLayer() {
 
     // Clean up function
     return () => {
-      // Only try to remove if map and layer exist
-      if (map && maplibreLayer) {
+      // Cleanup handlers with error handling
+      const cleanupLayer = () => {
         try {
-          if (map.hasLayer(maplibreLayer)) {
+          if (map && maplibreLayer && map.hasLayer(maplibreLayer)) {
             map.removeLayer(maplibreLayer);
           }
         } catch (error) {
           console.warn('Error removing maplibre layer:', error);
         }
-      }
-      // Only remove control if it exists
-      if (map && searchAndLocateControl) {
+      };
+
+      const cleanupControl = () => {
         try {
-          map.removeControl(searchAndLocateControl);
+          if (map && searchAndLocateControl) {
+            map.removeControl(searchAndLocateControl);
+          }
         } catch (error) {
           console.warn('Error removing search control:', error);
         }
-      }
+      };
+
+      // Execute cleanup
+      cleanupLayer();
+      cleanupControl();
     };
   }, [map, theme, toast, handleSearch]);
 
@@ -720,7 +726,7 @@ function MerchantMarkers() {
                     <a href="javascript:void(0)"
                        onclick="window.location.href = '${getNavigationUrl(lat, lng)}'"
                        class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white hover:bg-gray-100">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
+                      <svg width="16" height="16" viewBox="0 024 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
                         <circle cx="12" cy="10" r="3"/>
                       </svg>
                     </a>

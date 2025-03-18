@@ -466,12 +466,12 @@ export default function Home() {
                         control={merchantForm.control}
                         name="contact"
                         render={({ field }) => (
-                          <FormItem>
+                          <FormItem className="mb-6">
                             <FormLabel>Public Contact</FormLabel>
                             <FormControl>
                               <Input {...field} type="email" placeholder="hello@btcmap.org" />
                             </FormControl>
-                            <p className="text-sm text-muted-foreground mt-1">
+                            <p className="text-sm text-muted-foreground mt-1 break-normal">
                               If we have any follow-up questions we will contact you in order to add your location successfully. To speed up the process please check your spam folder in case it ends up there.
                             </p>
                           </FormItem>
