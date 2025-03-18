@@ -186,7 +186,7 @@ Created at: ${new Date().toISOString()}
         .limit(1);
 
       // If no previous sync, get last 2 years of data
-      const updatedSince = lastSynced[0]?.updatedAt || 
+      const updatedSince = lastSynced[0]?.updatedAt ||
         new Date(Date.now() - (DEFAULT_SYNC_DAYS * 24 * 60 * 60 * 1000));
 
       console.log('Fetching BTCMap elements updated since:', updatedSince.toISOString());
@@ -244,7 +244,7 @@ Created at: ${new Date().toISOString()}
       res.json(formattedElements);
     } catch (error) {
       console.error('BTCMap API error:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         message: "Failed to fetch merchants from BTCMap",
         error: error instanceof Error ? error.message : "Unknown error"
       });
@@ -286,7 +286,7 @@ Created at: ${new Date().toISOString()}
       res.json(data.businessMapMarkers);
     } catch (error) {
       console.error('Blink API error:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         message: "Failed to fetch merchants from Blink",
         error: error instanceof Error ? error.message : "Unknown error"
       });
@@ -312,7 +312,7 @@ Created at: ${new Date().toISOString()}
       res.json(data);
     } catch (error) {
       console.error('Bitcoin Jungle API error:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         message: "Failed to fetch merchants from Bitcoin Jungle",
         error: error instanceof Error ? error.message : "Unknown error"
       });
@@ -370,7 +370,7 @@ Created at: ${new Date().toISOString()}
       res.json(data);
     } catch (error) {
       console.error('Bitcoin Jungle API Schema error:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         message: "Failed to fetch Bitcoin Jungle API schema",
         error: error instanceof Error ? error.message : "Unknown error"
       });
