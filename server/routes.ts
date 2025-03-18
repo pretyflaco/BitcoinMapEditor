@@ -24,11 +24,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let country = '';
       try {
         const response = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${merchantData.latitude}&lon=${merchantData.longitude}&zoom=3`,
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${merchantData.latitude}&lon=${merchantData.longitude}&zoom=3&accept-language=en`,
           {
             headers: {
               'User-Agent': 'BitcoinMapEditor/1.0',
-              'Accept': 'application/json'
+              'Accept': 'application/json',
+              'Accept-Language': 'en'
             }
           }
         );
@@ -86,7 +87,7 @@ Created at: ${new Date().toISOString()}
           title: merchantData.name,
           body: issueBody,
           labels: [
-            ...(country ? [`[${country}]`] : []),
+            ...(country ? [country] : []),
             'good first issue',
             'help wanted',
             { name: 'local-submission', description: 'Submission from the noob form' }
