@@ -92,9 +92,15 @@ export function deduplicateMerchants(
   btcMapMerchants: any[],
   blinkMerchants: any[],
   bitcoinJungleMerchants: any[]
-): { blinkMerchants: any[], bitcoinJungleMerchants: any[], stats: any } {
+): { 
+  blinkMerchants: any[], 
+  bitcoinJungleMerchants: any[], 
+  stats: any,
+  blinkBtcMapMatches: Record<string, string> // Map of Blink usernames to BTCMap IDs
+} {
   // Create spatial index for BTCMap merchants
   const btcMapGrid: Record<string, any[]> = {};
+  const blinkBtcMapMatches: Record<string, string> = {}; // Track matches
 
   btcMapMerchants.forEach(merchant => {
     const lat = merchant.osm_json.lat;
@@ -141,6 +147,10 @@ export function deduplicateMerchants(
 
         if (similarityScore >= DEDUP_CONFIG.NAME_SIMILARITY_THRESHOLD) {
           console.log(`Found duplicate: "${name}" matches "${btcMerchant.name}" with score ${similarityScore}`);
+          // Store the match if it's a Blink merchant
+          if (source === 'blink') {
+            blinkBtcMapMatches[merchant.username] = btcMerchant.original.id;
+          }
           return true;
         }
       }
@@ -172,6 +182,7 @@ export function deduplicateMerchants(
   return {
     blinkMerchants: uniqueBlinkMerchants,
     bitcoinJungleMerchants: uniqueBitcoinJungleMerchants,
-    stats
+    stats,
+    blinkBtcMapMatches
   };
 }

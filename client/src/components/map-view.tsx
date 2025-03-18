@@ -197,17 +197,33 @@ function MapLayer() {
     select: (data: any) => data?.locations || [],
   });
 
+  // Update the updateVisibleMarkers callback to use blinkBtcMapMatches
   const updateVisibleMarkers = useCallback(() => {
     if (!map) return;
 
     const bounds = map.getBounds();
 
-    // Apply deduplication
-    const { blinkMerchants: uniqueBlinkMerchants, bitcoinJungleMerchants: uniqueBitcoinJungleMerchants, stats } = deduplicateMerchants(
+    // Apply deduplication and get matches
+    const { 
+      blinkMerchants: uniqueBlinkMerchants, 
+      bitcoinJungleMerchants: uniqueBitcoinJungleMerchants, 
+      stats,
+      blinkBtcMapMatches 
+    } = deduplicateMerchants(
       btcMapMerchants,
       blinkMerchants,
       bitcoinJungleMerchants
     );
+
+    // Find matching Blink merchant for a BTCMap ID
+    const getMatchingBlinkMerchant = (btcMapId: string) => {
+      const blinkUsername = Object.entries(blinkBtcMapMatches)
+        .find(([_, matchedBtcMapId]) => matchedBtcMapId === btcMapId)?.[0];
+      if (blinkUsername) {
+        return blinkMerchants.find(m => m.username === blinkUsername);
+      }
+      return null;
+    };
 
     // Log deduplication stats
     console.log('Deduplication stats:', stats);
@@ -261,7 +277,7 @@ function MapLayer() {
       }
     });
 
-    // Group new markers by cell
+    // Group markers by cell
     const newMarkersGroups = grid.reduce((acc, item) => {
       if (!acc[item.cell]) {
         acc[item.cell] = {
@@ -393,6 +409,20 @@ function MapLayer() {
                 contactless: tags['payment:contactless']
               };
 
+              // Check if there's a matching Blink merchant
+              const matchingBlinkMerchant = getMatchingBlinkMerchant(merchant.id);
+              const blinkPaymentButton = matchingBlinkMerchant ? `
+                <a href="https://pay.blink.sv/${matchingBlinkMerchant.username}"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white hover:bg-gray-100">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="5" width="20" height="14" rx="2"/>
+                    <line x1="2" y1="10" x2="22" y2="10"/>
+                  </svg>
+                </a>
+              ` : '';
+
               details = `
                 <div class="text-center min-w-[280px]">
                   <img
@@ -420,19 +450,22 @@ function MapLayer() {
                         class="w-6 h-6"
                       />
                       <img
-                        src="https://btcmap.org/icons/${paymentMethods.contactless === 'yes' ? 'nfc-primary' : 'nfc-no'}.svg"
+                        src="https://btcmap.org/icons/${paymentMethods.contactless === 'yes' ? 'nfc-primary' : 'nfc'}.svg"
                         alt="Contactless payments"
                         class="w-6 h-6"
                       />
                     </div>
-                    <a href="javascript:void(0)"
-                       onclick="window.location.href = '${getNavigationUrl(lat, lng)}'"
-                       class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white hover:bg-gray-100">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
-                        <circle cx="12" cy="10" r="3"/>
-                      </svg>
-                    </a>
+                    <div class="flex gap-2">
+                      ${blinkPaymentButton}
+                      <a href="javascript:void(0)"
+                         onclick="window.location.href = '${getNavigationUrl(lat, lng)}'"
+                         class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white hover:bg-gray-100">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
+                          <circle cx="12" cy="10" r="3"/>
+                        </svg>
+                      </a>
+                    </div>
                   </div>
                 </div>`;
               icon = btcmapIcon;
