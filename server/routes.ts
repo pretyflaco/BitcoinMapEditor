@@ -234,11 +234,14 @@ Created at: ${new Date().toISOString()}
         console.log('Sample cached element:', JSON.stringify(cachedElements[0], null, 2));
       }
 
-      res.json(cachedElements.map(el => ({
+      // Format the response to match exactly what BTCMap API returns
+      const formattedElements = cachedElements.map(el => ({
         id: el.elementId,
-        osm_json: el.osmData,
+        osm_json: typeof el.osmData === 'string' ? JSON.parse(el.osmData) : el.osmData,
         updated_at: el.updatedAt.toISOString()
-      })));
+      }));
+
+      res.json(formattedElements);
     } catch (error) {
       console.error('BTCMap API error:', error);
       res.status(500).json({ 
