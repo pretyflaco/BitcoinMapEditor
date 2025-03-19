@@ -14,7 +14,7 @@ const BITCOIN_JUNGLE_API = process.env.BITCOIN_JUNGLE_API || 'https://api.mainne
 
 // Check for required environment variables
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-const GITHUB_REPO = process.env.GITHUB_REPO;
+const GITHUB_REPO = process.env.GITHUB_REPO?.replace('https://github.com/', '') || '';
 
 if (!GITHUB_TOKEN || !GITHUB_REPO) {
   console.error('Missing required environment variables: GITHUB_TOKEN and/or GITHUB_REPO');
