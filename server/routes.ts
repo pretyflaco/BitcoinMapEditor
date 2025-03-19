@@ -162,11 +162,13 @@ Status: Todo
 Created at: ${new Date().toISOString()}
 `;
 
+      console.log('Creating GitHub issue with token:', GITHUB_TOKEN ? 'Token present' : 'Token missing');
+
       // Create GitHub issue
       const response = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/issues`, {
         method: 'POST',
         headers: {
-          'Authorization': `token ${GITHUB_TOKEN}`,
+          'Authorization': `Bearer ${GITHUB_TOKEN}`,
           'Accept': 'application/vnd.github.v3+json',
           'Content-Type': 'application/json',
         },
@@ -183,7 +185,13 @@ Created at: ${new Date().toISOString()}
       });
 
       if (!response.ok) {
-        throw new Error(`GitHub API error: ${response.statusText}`);
+        const errorText = await response.text();
+        console.error('GitHub API error:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText
+        });
+        throw new Error(`GitHub API error: ${response.status} - ${errorText}`);
       }
 
       const issue = await response.json();
@@ -197,7 +205,10 @@ Created at: ${new Date().toISOString()}
         const validationError = fromZodError(error);
         res.status(400).json({ message: validationError.message });
       } else {
-        res.status(500).json({ message: "Failed to submit merchant suggestion" });
+        res.status(500).json({ 
+          message: "Failed to submit merchant suggestion",
+          error: error instanceof Error ? error.message : "Unknown error"
+        });
       }
     }
   });
