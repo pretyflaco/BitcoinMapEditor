@@ -4,11 +4,22 @@ import { insertMerchantSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { request, gql } from 'graphql-request';
 import { ZodError } from "zod";
+import * as dotenv from 'dotenv';
 
-const BLINK_API = 'https://api.blink.sv/graphql';
-const BITCOIN_JUNGLE_API = 'https://api.mainnet.bitcoinjungle.app/graphql';
-const GITHUB_TOKEN = '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';
-const GITHUB_REPO = 'pretyflaco/BitcoinMapEditor';
+// Load environment variables
+dotenv.config();
+
+const BLINK_API = process.env.BLINK_API || 'https://api.blink.sv/graphql';
+const BITCOIN_JUNGLE_API = process.env.BITCOIN_JUNGLE_API || 'https://api.mainnet.bitcoinjungle.app/graphql';
+
+// Check for required environment variables
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+const GITHUB_REPO = process.env.GITHUB_REPO;
+
+if (!GITHUB_TOKEN || !GITHUB_REPO) {
+  console.error('Missing required environment variables: GITHUB_TOKEN and/or GITHUB_REPO');
+  process.exit(1);
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Add a status endpoint to verify server is running
@@ -85,7 +96,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     } catch (error) {
       console.error('Error fetching merchants:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         message: "Failed to fetch merchants",
         error: error instanceof Error ? error.message : "Unknown error"
       });
@@ -208,7 +219,7 @@ Created at: ${new Date().toISOString()}
       res.json(data);
     } catch (error) {
       console.error('BTCMap API error:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         message: "Failed to fetch merchants from BTCMap",
         error: error instanceof Error ? error.message : "Unknown error"
       });
@@ -250,7 +261,7 @@ Created at: ${new Date().toISOString()}
       res.json(data.businessMapMarkers);
     } catch (error) {
       console.error('Blink API error:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         message: "Failed to fetch merchants from Blink",
         error: error instanceof Error ? error.message : "Unknown error"
       });
@@ -276,7 +287,7 @@ Created at: ${new Date().toISOString()}
       res.json(data);
     } catch (error) {
       console.error('Bitcoin Jungle API error:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         message: "Failed to fetch merchants from Bitcoin Jungle",
         error: error instanceof Error ? error.message : "Unknown error"
       });
@@ -334,7 +345,7 @@ Created at: ${new Date().toISOString()}
       res.json(data);
     } catch (error) {
       console.error('Bitcoin Jungle API Schema error:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         message: "Failed to fetch Bitcoin Jungle API schema",
         error: error instanceof Error ? error.message : "Unknown error"
       });
