@@ -164,11 +164,19 @@ Created at: ${new Date().toISOString()}
 
       console.log('Creating GitHub issue with token:', GITHUB_TOKEN ? 'Token present' : 'Token missing');
 
+      // Log GitHub API request details for debugging
+      console.log('GitHub API request:', {
+        repo: GITHUB_REPO,
+        url: `https://api.github.com/repos/${GITHUB_REPO}/issues`,
+        tokenPresent: Boolean(GITHUB_TOKEN),
+        merchantName: merchantData.name
+      });
+
       // Create GitHub issue
       const response = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/issues`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${GITHUB_TOKEN}`,
+          'Authorization': `token ${GITHUB_TOKEN}`,
           'Accept': 'application/vnd.github.v3+json',
           'Content-Type': 'application/json',
         },
@@ -189,7 +197,8 @@ Created at: ${new Date().toISOString()}
         console.error('GitHub API error:', {
           status: response.status,
           statusText: response.statusText,
-          error: errorText
+          error: errorText,
+          requestUrl: `https://api.github.com/repos/${GITHUB_REPO}/issues`
         });
         throw new Error(`GitHub API error: ${response.status} - ${errorText}`);
       }
@@ -205,7 +214,7 @@ Created at: ${new Date().toISOString()}
         const validationError = fromZodError(error);
         res.status(400).json({ message: validationError.message });
       } else {
-        res.status(500).json({ 
+        res.status(500).json({
           message: "Failed to submit merchant suggestion",
           error: error instanceof Error ? error.message : "Unknown error"
         });
