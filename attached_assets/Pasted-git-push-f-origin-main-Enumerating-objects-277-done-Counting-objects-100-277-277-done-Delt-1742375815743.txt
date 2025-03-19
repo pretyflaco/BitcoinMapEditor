@@ -1,0 +1,42 @@
+git push -f origin main
+Enumerating objects: 277, done.
+Counting objects: 100% (277/277), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (252/252), done.
+Writing objects: 100% (260/260), 114.84 KiB | 2.73 MiB/s, done.
+Total 260 (delta 211), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (211/211), completed with 10 local objects.
+remote: error: GH013: Repository rule violations found for refs/heads/main.
+remote: 
+remote: - GITHUB PUSH PROTECTION
+remote:   —————————————————————————————————————————
+remote:     Resolve the following violations before pushing again
+remote: 
+remote:     - Push cannot contain secrets
+remote: 
+remote:     
+remote:      (?) Learn how to resolve a blocked push
+remote:      https://docs.github.com/code-security/secret-scanning/working-with-secret-scanning-and-push-protection/working-with-push-protection-from-the-command-line#resolving-a-blocked-push
+remote:     
+remote:     
+remote:       —— GitHub Personal Access Token ——————————————————————
+remote:        locations:
+remote:          - commit: bc285d6c902ff9fcf450ca42729c8585055d634e
+remote:            path: server/routes.ts:9
+remote:          - commit: 416774efeb9bc254aff4974f001b263939a086d4
+remote:            path: server/routes.ts:10
+remote:          - commit: 5f0d085e845d1085441ef10d0e82297cd90f2628
+remote:            path: server/routes.ts:10
+remote:          - commit: c8e07c226019ee16b8a6ae250e1a0fc370dded94
+remote:            path: server/routes.ts:11
+remote:          - commit: af8648914f3eccb30a1d3d3d8709f3465c047a56
+remote:            path: server/routes.ts:12
+remote:     
+remote:        (?) To push, remove secret from commit(s) or follow this URL to allow the secret.
+remote:        https://github.com/pretyflaco/BitcoinMapEditor/security/secret-scanning/unblock-secret/2uWogSgONZHycElmkUDCgP0R74l
+remote:     
+remote: 
+remote: 
+To https://github.com/pretyflaco/BitcoinMapEditor
+ ! [remote rejected] main -> main (push declined due to repository rule violations)
+error: failed to push some refs to 'https://github.com/pretyflaco/BitcoinMapEditor'
